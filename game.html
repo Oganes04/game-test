@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>КОНВЕЙЕР — Бюро Незавершённых Вещей</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 800px at 50% -10%,#16224a,#070a14 60%);
+    color:#e8eeff;display:flex;justify-content:center;align-items:center;padding:10px;
+    overflow:hidden;touch-action:manipulation;user-select:none}
+  body.shake #app{animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  #app{width:min(580px,100%);display:flex;flex-direction:column;gap:8px}
+
+  #hud{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12px}
+  .chip{background:rgba(255,255,255,.06);border:1px solid rgba(120,150,255,.2);
+    padding:4px 9px;border-radius:10px;white-space:nowrap}
+  .chip.gold{border-color:rgba(255,201,77,.4);color:#ffd166}
+  .spacer{flex:1}
+
+  #beltArea{position:relative;height:190px;border-radius:18px;overflow:hidden;
+    background:linear-gradient(180deg,#131a2e,#0b1020);
+    border:1px solid rgba(120,150,255,.18);
+    box-shadow:inset 0 0 60px rgba(0,0,0,.6);transition:box-shadow .3s}
+  #beltArea.hot{box-shadow:inset 0 0 80px rgba(255,93,115,.3),0 0 20px rgba(255,93,115,.3)}
+  #belt{position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 26px,transparent 26px 52px);
+    animation:beltMove 1.1s linear infinite}
+  @keyframes beltMove{to{background-position:-52px 0}}
+
+  #timerBar{position:absolute;top:0;left:0;right:0;height:4px;background:rgba(0,0,0,.4);z-index:10}
+  #timerFill{height:100%;background:linear-gradient(90deg,#3ddc97,#6c8cff);transition:width .1s linear;width:100%}
+  #timerFill.low{background:linear-gradient(90deg,#ff5d73,#ffc94d);animation:timerPulse .6s infinite}
+  @keyframes timerPulse{50%{opacity:.6}}
+
+  #heatBar{position:absolute;top:4px;left:0;right:0;height:4px;background:rgba(0,0,0,.4);z-index:10}
+  #heatFill{height:100%;width:0%;background:linear-gradient(90deg,#ffc94d,#ff5d73);transition:width .15s}
+  #heatFill.warn{animation:heatWarn .5s infinite}
+  @keyframes heatWarn{50%{opacity:.55}}
+
+  #comboBadge{position:absolute;top:18px;right:12px;font-size:22px;font-weight:900;
+    color:#ffc94d;text-shadow:0 0 15px rgba(255,201,77,.9);
+    opacity:0;transition:opacity .2s;pointer-events:none;z-index:10}
+  #comboBadge.show{opacity:1}
+  #comboBadge.bump{animation:comboBump .3s}
+  @keyframes comboBump{50%{transform:scale(1.4)}}
+
+  #hint{position:absolute;bottom:2px;left:0;right:0;text-align:center;
+    font-size:9.5px;opacity:.3;pointer-events:none}
+
+  .obj{position:absolute;top:50%;left:0;margin-top:-40px;width:76px;height:80px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    border-radius:15px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+    cursor:pointer;will-change:transform;touch-action:none;
+    transition:background .15s,border-color .15s,box-shadow .15s,opacity .3s,scale .3s}
+  .obj .em{font-size:30px;line-height:1;pointer-events:none}
+  .obj .nm{font-size:8.5px;opacity:.6;max-width:70px;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;pointer-events:none}
+  .obj.selected{border-color:#ffc94d;background:rgba(255,201,77,.13);
+    box-shadow:0 0 0 2px rgba(255,201,77,.45),0 0 26px rgba(255,201,77,.35);z-index:5}
+  .obj.named{border-color:#c86bff;background:rgba(200,107,255,.13);
+    box-shadow:0 0 0 2px rgba(200,107,255,.4),0 0 28px rgba(200,107,255,.55);
+    animation:namedPulse 1.4s ease-in-out infinite}
+  @keyframes namedPulse{50%{box-shadow:0 0 0 4px rgba(200,107,255,.25),0 0 40px rgba(200,107,255,.85)}}
+  .obj.sorted{opacity:0;scale:.25;pointer-events:none}
+  .obj.wrong{opacity:0;scale:.8;background:rgba(255,93,115,.25);border-color:#ff5d73;pointer-events:none}
+  .obj.miss{opacity:0;scale:.6;pointer-events:none}
+
+  #bins{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .bin{position:relative;background:linear-gradient(180deg,#18213d,#101728);
+    border:1px solid rgba(120,150,255,.25);border-radius:16px;padding:10px 4px;
+    text-align:center;cursor:pointer;transition:transform .1s,border-color .2s,background .2s,opacity .2s}
+  .bin:active{transform:scale(.95)}
+  .bin .bEm{font-size:23px;line-height:1.1;pointer-events:none}
+  .bin .bNm{font-size:10.5px;opacity:.8;margin-top:2px;pointer-events:none}
+  .bin.hit{border-color:#3ddc97;background:linear-gradient(180deg,#16352b,#101728)}
+  .bin.err{border-color:#ff5d73;background:linear-gradient(180deg,#33161f,#101728)}
+  .bin.drop-hover{border-color:#ffc94d;background:linear-gradient(180deg,#3d3216,#101728);
+    transform:scale(1.06);box-shadow:0 0 25px rgba(255,201,77,.5)}
+
+  #toolBar{display:flex;gap:8px;justify-content:center}
+  .tool{flex:0 0 auto;min-width:110px;padding:8px 14px;border-radius:12px;
+    background:linear-gradient(180deg,#1a2240,#101728);
+    border:1px solid rgba(120,150,255,.3);font-size:12px;cursor:pointer;
+    display:flex;align-items:center;gap:6px;justify-content:center;
+    transition:transform .1s,border-color .2s,opacity .2s;position:relative;overflow:hidden}
+  .tool:active{transform:scale(.95)}
+  .tool.ready{border-color:rgba(61,220,151,.5);box-shadow:0 0 10px rgba(61,220,151,.2)}
+  .tool.cooling{opacity:.5;cursor:not-allowed}
+  .tool .cd-fill{position:absolute;inset:0;background:rgba(0,0,0,.6);transform-origin:left;transition:transform .1s linear}
+  .tool .label{position:relative;z-index:1}
+
+  .pop{position:absolute;font-weight:800;font-size:15px;pointer-events:none;
+    animation:popUp .9s ease-out forwards;text-shadow:0 0 12px currentColor;z-index:8}
+  .pop.good{color:#3ddc97}
+  .pop.bad{color:#ff5d73}
+  @keyframes popUp{to{opacity:0;transform:translateY(-55px)}}
+
+  #whisperBtn{position:absolute;top:20px;left:14px;font-size:30px;cursor:pointer;
+    z-index:15;opacity:0;transform:scale(.3);transition:opacity .4s,transform .4s;
+    filter:drop-shadow(0 0 12px rgba(200,107,255,.9));animation:whisperFloat 2s ease-in-out infinite}
+  #whisperBtn.show{opacity:1;transform:scale(1)}
+  @keyframes whisperFloat{50%{transform:translateY(-6px) scale(1.05)}}
+
+  .ghost{position:absolute;font-size:24px;pointer-events:none;z-index:12;
+    filter:drop-shadow(0 0 10px rgba(200,107,255,.7));transition:opacity .3s}
+
+  #modal{position:fixed;inset:0;background:rgba(4,7,15,.87);backdrop-filter:blur(7px);
+    display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+  #modal.hidden{display:none}
+  .card{width:min(490px,100%);max-height:92vh;overflow-y:auto;
+    background:linear-gradient(180deg,#131c33,#0c1222);
+    border:1px solid rgba(120,150,255,.28);border-radius:22px;padding:22px;
+    animation:cardIn .25s ease-out}
+  @keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.97)}}
+  .dEm{font-size:52px;text-align:center;line-height:1}
+  .dName{font-size:12px;text-align:center;opacity:.55;margin-top:6px;
+    letter-spacing:2px;text-transform:uppercase}
+  .dTitle{font-size:19px;font-weight:800;text-align:center;margin-top:2px}
+  .dPlea{font-size:14px;opacity:.85;text-align:center;margin-top:12px;line-height:1.55;
+    font-style:italic;padding:12px;background:rgba(255,255,255,.04);border-radius:12px;
+    border-left:3px solid rgba(200,107,255,.6)}
+  .dOpts{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+  .dOpts button{display:flex;flex-direction:column;gap:3px;text-align:left;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+    color:#e8eeff;padding:11px 14px;border-radius:14px;font:inherit;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .1s}
+  .dOpts button:hover{background:rgba(108,140,255,.15);border-color:rgba(108,140,255,.5)}
+  .dOpts button:active{transform:scale(.98)}
+  .dOpts button b{font-size:14px}
+  .dOpts button span{font-size:11.5px;opacity:.65}
+  .dOpts button.special{border-color:rgba(200,107,255,.5);background:rgba(200,107,255,.08)}
+  .dOpts button.special:hover{background:rgba(200,107,255,.18)}
+
+  .btnBig{width:100%;margin-top:16px;padding:14px;border-radius:14px;border:none;
+    background:linear-gradient(135deg,#6c8cff,#a86bff);color:#fff;
+    font:inherit;font-weight:800;font-size:15px;cursor:pointer;
+    transition:transform .1s,filter .2s}
+  .btnBig:active{transform:scale(.97)}
+  .btnBig:hover{filter:brightness(1.1)}
+
+  .stats{display:flex;justify-content:center;gap:12px;margin-top:14px;font-size:12.5px;flex-wrap:wrap}
+  .stats div{background:rgba(255,255,255,.05);padding:8px 12px;border-radius:12px}
+
+  .story-log{margin-top:14px;font-size:12px;line-height:1.55}
+  .story-log .item{display:flex;gap:8px;padding:8px 10px;margin-top:6px;
+    background:rgba(255,255,255,.04);border-radius:10px;border-left:3px solid rgba(255,255,255,.15)}
+  .story-log .item.saved{border-left-color:#3ddc97}
+  .story-log .item.rules{border-left-color:#ff5d73}
+  .story-log .item.used{border-left-color:#c86bff}
+  .story-log .item.ignored{border-left-color:#666}
+
+  #toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,22px);
+    background:rgba(20,28,48,.96);border:1px solid rgba(120,150,255,.35);
+    padding:12px 18px;border-radius:14px;font-size:13px;line-height:1.45;
+    max-width:min(460px,92vw);text-align:center;opacity:0;pointer-events:none;
+    transition:.3s;z-index:60}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #toast.good{border-color:rgba(61,220,151,.5)}
+  #toast.bad{border-color:rgba(255,93,115,.5)}
+  #toast.magic{border-color:rgba(200,107,255,.55)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="chip" id="levelChip">Ур 1/3</div>
+    <div class="chip" id="levelName">Первый день</div>
+    <div class="spacer"></div>
+    <div class="chip" id="livesChip">❤️❤️❤️</div>
+    <div class="chip gold" id="scoreChip">0</div>
+  </div>
+  <div id="beltArea">
+    <div id="timerBar"><div id="timerFill"></div></div>
+    <div id="heatBar"><div id="heatFill"></div></div>
+    <div id="belt"></div>
+    <div id="comboBadge"></div>
+    <div id="whisperBtn">👁️</div>
+    <div id="hint">тапни объект → контейнер · или перетащи</div>
+  </div>
+  <div id="bins"></div>
+  <div id="toolBar"></div>
+</div>
+<div id="modal" class="hidden"></div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   ДАННЫЕ ПЕРСОНАЖЕЙ
+   ============================================================ */
+const CHARACTERS = {
+  sad_villain: {
+    emoji:'🦹', name:'Грустный злодей',
+    plea:'Пожалуйста… не в Опасное. У меня на руках котёнок. Он не переживёт конвейер.',
+    onBeltName:'Злодей',
+    options:[
+      { id:'rules', icon:'📋', label:'По правилам', desc:'+100 очков · Начальник одобряет · −10 карма',
+        score:+100, time:0, trustBoss:+5, trustWhisper:-5, karma:-10, flag:'rules' },
+      { id:'saved', icon:'🕊', label:'Помочь', desc:'−50 очков · −10 секунд · Злодей вернётся союзником',
+        score:-50, time:-10, trustBoss:-5, trustWhisper:+10, karma:+15, flag:'saved' },
+      { id:'used', icon:'🌀', label:'Забрать котёнка', desc:'Злодей уходит в Опасное с благодарностью · +5 Шёпот',
+        score:0, time:0, trustBoss:0, trustWhisper:+5, karma:0, flag:'used' }
+    ]
+  },
+  robot_kitten: {
+    emoji:'🤖', name:'Робот-котёнок',
+    plea:'Мяу. Я… я не знаю, что я. Техника или животное? Меня разберут, если я не впишусь.',
+    onBeltName:'Робокот',
+    options:[
+      { id:'rules', icon:'📋', label:'В контейнер «Техника»', desc:'+100 очков · Начальник одобряет',
+        score:+100, time:0, trustBoss:+5, trustWhisper:-5, karma:-10, flag:'rules' },
+      { id:'saved', icon:'🕊', label:'Оставить как есть', desc:'−50 очков · −10 секунд · Робокот станет помощником',
+        score:-50, time:-10, trustBoss:-5, trustWhisper:+10, karma:+15, flag:'saved' },
+      { id:'used', icon:'🌀', label:'Разобрать на запчасти', desc:'Получить «Ядро» (инструмент) · −15 карма',
+        score:+50, time:0, trustBoss:0, trustWhisper:-5, karma:-15, flag:'used' }
+    ]
+  }
+};
+
+/* ============================================================
+   УРОВНИ
+   ============================================================ */
+const LEVELS = [
+{
+  name:'Первый день', duration:60, namedAfter:5,
+  bins:[{id:'food',e:'🍽️',n:'Еда'},{id:'plant',e:'🌱',n:'Растения'},{id:'danger',e:'⚠️',n:'Опасное'}],
+  pool:[
+    {e:'🍌',n:'Банан',c:'food'},{e:'🌵',n:'Кактус',c:'plant'},{e:'🍎',n:'Яблоко',c:'food'},
+    {e:'🌸',n:'Цветок',c:'plant'},{e:'🐍',n:'Змея',c:'danger'},{e:'🥕',n:'Морковь',c:'food'},
+    {e:'🐝',n:'Оса',c:'danger'},{e:'🌷',n:'Тюльпан',c:'plant'},{e:'🍕',n:'Пицца',c:'food'},
+    {e:'🦂',n:'Скорпион',c:'danger'}
+  ],
+  named:'sad_villain', namedCategory:'danger'
+},
+{
+  name:'Робот-котёнок', duration:60, namedAfter:6,
+  intro:'Начальник: «Новый инструмент — Лассо. Дотянись до объекта, если он уезжает.»',
+  bins:[{id:'trash',e:'🗑️',n:'Мусор'},{id:'toy',e:'🧸',n:'Игрушки'},{id:'sweet',e:'🍬',n:'Сладости'}],
+  pool:[
+    {e:'🍬',n:'Конфета',c:'sweet'},{e:'🧻',n:'Бумага',c:'trash'},{e:'🧸',n:'Мишка',c:'toy'},
+    {e:'🍭',n:'Леденец',c:'sweet'},{e:'🪀',n:'Йо-йо',c:'toy'},{e:'🥫',n:'Банка',c:'trash'},
+    {e:'🍫',n:'Шоколад',c:'sweet'},{e:'📰',n:'Газета',c:'trash'},{e:'🪆',n:'Матрёшка',c:'toy'},
+    {e:'🍩',n:'Пончик',c:'sweet'}
+  ],
+  named:'robot_kitten', namedCategory:'toy',
+  unlockTool:'lasso'
+},
+{
+  name:'Проверка', duration:70, namedAfter:999,
+  bins:[{id:'animal',e:'🐾',n:'Животные'},{id:'plant',e:'🌿',n:'Растения'},{id:'tech',e:'⚙️',n:'Техника'}],
+  pool:[
+    {e:'🐶',n:'Собака',c:'animal'},{e:'🌿',n:'Папоротник',c:'plant'},{e:'📱',n:'Телефон',c:'tech'},
+    {e:'🐱',n:'Кот',c:'animal'},{e:'🌳',n:'Дуб',c:'plant'},{e:'🚗',n:'Машина',c:'tech'},
+    {e:'🐹',n:'Хомяк',c:'animal'},{e:'💻',n:'Ноутбук',c:'tech'},{e:'🌵',n:'Кактус',c:'plant'},
+    {e:'🐢',n:'Черепаха',c:'animal'},{e:'📺',n:'Телевизор',c:'tech'},{e:'🍀',n:'Клевер',c:'plant'}
+  ],
+  hasWhisper:true, whisperAfter:4
+}
+];
+
+/* ============================================================
+   ГЛОБАЛЬНОЕ СОСТОЯНИЕ (история)
+   ============================================================ */
+const story = {
+  sad_villain:'rules', // default for level 1 if player fails weirdly
+  robot_kitten:null,
+  whisper:null
+};
+
+/* ============================================================
+   RUNTIME STATE
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const beltArea = $('beltArea');
+const modal = $('modal');
+
+const state = {
+  levelIndex:0, level:null,
+  score:0, lives:3, combo:0, doubt:0,
+  timer:0, timerMax:0, heat:0,
+  objects:[], selected:null,
+  running:false, paused:false, levelEnded:false,
+  spawnTimer:0, sortedCount:0, namedSpawned:false,
+  toolCooldowns:{ lasso:0, core:0 },
+  allyTimer:0, ghostTimer:0,
+  whisperShown:false, whisperClicked:false,
+  effectTimer:0
+};
+
+/* ============================================================
+   HUD
+   ============================================================ */
+function updateHUD(){
+  $('levelChip').textContent = `Ур ${state.levelIndex+1}/${LEVELS.length}`;
+  $('levelName').textContent = state.level.name;
+  $('livesChip').textContent = '❤️'.repeat(Math.max(0,state.lives)) + '🖤'.repeat(Math.max(0,3-state.lives));
+  $('scoreChip').textContent = state.score;
+  const pct = Math.max(0, Math.min(100, state.timer / state.timerMax * 100));
+  const tf = $('timerFill');
+  tf.style.width = pct + '%';
+  tf.classList.toggle('low', state.timer < 10);
+  const hf = $('heatFill');
+  hf.style.width = state.heat + '%';
+  hf.classList.toggle('warn', state.heat > 70);
+}
+function updateComboBadge(){
+  const b = $('comboBadge');
+  if(state.combo >= 2){
+    b.textContent = 'x' + state.combo;
+    b.classList.add('show');
+    b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
+  } else b.classList.remove('show');
+}
+
+/* ============================================================
+   BINS
+   ============================================================ */
+function renderBins(){
+  const el = $('bins');
+  el.innerHTML = state.level.bins.map(b=>`
+    <div class="bin" data-id="${b.id}">
+      <div class="bEm">${b.e}</div><div class="bNm">${b.n}</div>
+    </div>`).join('');
+  el.querySelectorAll('.bin').forEach(b=>{
+    b.addEventListener('pointerdown', ev=>{ ev.preventDefault(); resolveBin(b.dataset.id); });
+  });
+}
+function flashBin(id, cls){
+  const b = document.querySelector(`.bin[data-id="${id}"]`);
+  if(!b) return;
+  b.classList.add(cls);
+  setTimeout(()=>b.classList.remove(cls), 260);
+}
+
+/* ============================================================
+   TOOLBAR
+   ============================================================ */
+function renderTools(){
+  const tb = $('toolBar');
+  tb.innerHTML = '';
+  if(!state.level.unlockTool && state.levelIndex === 0) return;
+  // Лассо доступно со 2-го уровня
+  if(state.levelIndex >= 1){
+    const lasso = document.createElement('div');
+    lasso.className = 'tool';
+    lasso.dataset.tool = 'lasso';
+    lasso.innerHTML = `<div class="cd-fill" style="transform:scaleX(0)"></div><span class="label">🪢 Лассо</span>`;
+    lasso.addEventListener('pointerdown', ()=> useTool('lasso'));
+    tb.appendChild(lasso);
+  }
+}
+function updateToolVisuals(){
+  document.querySelectorAll('.tool').forEach(t => {
+    const tool = t.dataset.tool;
+    const cd = state.toolCooldowns[tool] || 0;
+    const fill = t.querySelector('.cd-fill');
+    if(cd > 0){
+      t.classList.add('cooling'); t.classList.remove('ready');
+      fill.style.transform = `scaleX(${cd / 15})`;
+    } else {
+      t.classList.remove('cooling'); t.classList.add('ready');
+      fill.style.transform = 'scaleX(0)';
+    }
+  });
+}
+function useTool(tool){
+  if(state.toolCooldowns[tool] > 0) return;
+  if(tool === 'lasso'){
+    // Находим объект ближе всего к левому краю (но не именной)
+    const candidates = state.objects.filter(o=>!o.removed && !o.isNamed && !o.dragging);
+    if(!candidates.length){ showToast('Нечего тянуть.', 'bad'); return; }
+    candidates.sort((a,b)=> a.x - b.x);
+    const target = candidates[0];
+    // Притягиваем в середину ленты
+    target.x = beltArea.clientWidth * 0.4;
+    target.el.style.transform = `translateX(${target.x}px)`;
+    // Выделяем
+    if(state.selected) state.selected.el.classList.remove('selected');
+    state.selected = target;
+    target.el.classList.add('selected');
+    state.toolCooldowns.lasso = 15;
+    showToast('🪢 Лассо! Объект притянут.', 'good');
+  }
+}
+
+/* ============================================================
+   SPAWN + DRAG
+   ============================================================ */
+function setupDrag(o){
+  const el = o.el;
+  let drag = null;
+  el.addEventListener('pointerdown', e => {
+    if(o.removed || state.paused || state.levelEnded) return;
+    e.preventDefault(); e.stopPropagation();
+    drag = { startX:e.clientX, startY:e.clientY, offsetX:0, offsetY:0, ghost:null, moved:false, pointerId:e.pointerId };
+    try { el.setPointerCapture(e.pointerId); } catch(err){}
+  });
+  el.addEventListener('pointermove', e => {
+    if(!drag) return;
+    const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+    const dist = Math.hypot(dx, dy);
+    if(!drag.moved && dist > 8){
+      drag.moved = true;
+      o.dragging = true;
+      const rect = el.getBoundingClientRect();
+      drag.offsetX = e.clientX - rect.left;
+      drag.offsetY = e.clientY - rect.top;
+      const ghost = el.cloneNode(true);
+      Object.assign(ghost.style, {position:'fixed',left:rect.left+'px',top:rect.top+'px',
+        width:rect.width+'px',height:rect.height+'px',margin:'0',transform:'none',
+        zIndex:'1000',pointerEvents:'none',opacity:'0.95'});
+      document.body.appendChild(ghost);
+      drag.ghost = ghost;
+      el.style.opacity = '0.25';
+      el.classList.remove('selected');
+      if(state.selected === o) state.selected = null;
+    }
+    if(drag.moved && drag.ghost){
+      drag.ghost.style.left = (e.clientX - drag.offsetX) + 'px';
+      drag.ghost.style.top = (e.clientY - drag.offsetY) + 'px';
+      document.querySelectorAll('.bin').forEach(b => b.classList.remove('drop-hover'));
+      const bin = document.elementFromPoint(e.clientX, e.clientY)?.closest('.bin');
+      if(bin) bin.classList.add('drop-hover');
+    }
+  });
+  const endDrag = (e) => {
+    if(!drag) return;
+    const d = drag; drag = null;
+    try { el.releasePointerCapture(d.pointerId); } catch(err){}
+    if(d.ghost) d.ghost.remove();
+    el.style.opacity = '';
+    o.dragging = false;
+    document.querySelectorAll('.bin').forEach(b => b.classList.remove('drop-hover'));
+    if(e.type === 'pointercancel') return;
+    if(d.moved){
+      const bin = document.elementFromPoint(e.clientX, e.clientY)?.closest('.bin');
+      if(bin && !o.removed){
+        if(state.selected && state.selected !== o) state.selected.el.classList.remove('selected');
+        state.selected = o;
+        el.classList.add('selected');
+        resolveBin(bin.dataset.id);
+      }
+    } else {
+      if(state.selected === o){ el.classList.remove('selected'); state.selected = null; }
+      else {
+        if(state.selected) state.selected.el.classList.remove('selected');
+        state.selected = o; el.classList.add('selected');
+      }
+    }
+  };
+  el.addEventListener('pointerup', endDrag);
+  el.addEventListener('pointercancel', endDrag);
+}
+
+function spawnObject(item){
+  const w = beltArea.clientWidth;
+  const el = document.createElement('div');
+  el.className = 'obj';
+  el.innerHTML = `<span class="em">${item.e}</span><span class="nm">${item.n}</span>`;
+  el.style.transform = `translateX(${w}px)`;
+  beltArea.appendChild(el);
+  const o = { el, x:w, baseSpeed:w/5.5, data:item, removed:false, selected:false, dragging:false, isNamed:false };
+  setupDrag(o);
+  state.objects.push(o);
+}
+
+function spawnNamed(charId){
+  const ch = CHARACTERS[charId];
+  const w = beltArea.clientWidth;
+  const el = document.createElement('div');
+  el.className = 'obj named';
+  el.innerHTML = `<span class="em">${ch.emoji}</span><span class="nm">${ch.onBeltName}</span>`;
+  el.style.transform = `translateX(${w}px)`;
+  beltArea.appendChild(el);
+  const o = { el, x:w, baseSpeed:w/8, data:{e:ch.emoji,n:ch.onBeltName,c:'__named__'},
+    removed:false, selected:false, dragging:false, isNamed:true, charId };
+  // Именной объект: тап/перетаскивание → дилемма (не сортировка)
+  el.addEventListener('pointerdown', e=>{
+    if(state.paused || o.removed) return;
+    e.preventDefault(); e.stopPropagation();
+    openDilemma(charId, o);
+  });
+  state.objects.push(o);
+}
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+let last = performance.now();
+function update(dt){
+  if(state.timer <= 0){ endLevel(false); return; }
+  state.timer -= dt;
+
+  // Cooldowns
+  for(const k in state.toolCooldowns){
+    if(state.toolCooldowns[k] > 0) state.toolCooldowns[k] = Math.max(0, state.toolCooldowns[k] - dt);
+  }
+  updateToolVisuals();
+
+  // Heat: остывание если лента пуста
+  const onBelt = state.objects.filter(o=>!o.removed).length;
+  if(onBelt >= 5) state.heat = Math.min(100, state.heat + dt * 6);
+  else if(onBelt < 3) state.heat = Math.max(0, state.heat - dt * 4);
+  if(state.heat >= 100){ endLevel(false, 'Перегрев!'); return; }
+
+  // Spawn
+  state.spawnTimer -= dt;
+  if(state.spawnTimer <= 0){
+    // Named?
+    if(!state.namedSpawned && state.sortedCount >= state.level.namedAfter){
+      state.namedSpawned = true;
+      spawnNamed(state.level.named);
+      showToast('⚠️ Особый объект на ленте', 'magic');
+    } else {
+      const item = state.level.pool[Math.floor(Math.random()*state.level.pool.length)];
+      spawnObject(item);
+    }
+    const progress = 1 - state.timer / state.timerMax;
+    let interval = Math.max(0.7, 1.7 - progress * 0.7);
+    // Комбо ускоряет
+    interval *= (1 - state.combo * 0.05);
+    state.spawnTimer = Math.max(0.45, interval);
+  }
+
+  // Move
+  const w = beltArea.clientWidth;
+  const speedMul = 1 + (1 - state.timer/state.timerMax) * 0.6 + state.combo * 0.05;
+  for(const o of state.objects){
+    if(o.removed || o.selected || o.dragging) continue;
+    o.x -= o.baseSpeed * speedMul * dt;
+    o.el.style.transform = `translateX(${o.x}px)`;
+    if(o.x < -95){
+      o.removed = true;
+      o.el.classList.add('miss');
+      setTimeout(()=>o.el.remove(), 400);
+      if(o.isNamed){
+        // Именной не уезжает бесследно: принудительная дилемма
+        openDilemma(o.charId, o, true);
+        return;
+      }
+      state.lives--;
+      state.combo = 0;
+      state.heat = Math.min(100, state.heat + 8);
+      popup('−1 ❤️', o.x, 'bad');
+      shake();
+      updateHUD(); updateComboBadge();
+      if(state.lives <= 0){ endLevel(false); return; }
+    }
+  }
+  beltArea.classList.toggle('hot', state.heat > 70 || onBelt > 6);
+  state.objects = state.objects.filter(o => !o.removed || o.el.parentElement);
+
+  // Consequences from previous choices (ур. 3)
+  if(state.levelIndex === 2){
+    // Злодей спасён → союзник каждые 15 сек auto-сортирует
+    if(story.sad_villain === 'saved'){
+      state.allyTimer += dt;
+      if(state.allyTimer >= 15){
+        state.allyTimer = 0;
+        autoSortOne();
+        showGhost('👻💚', 'Авто-сортировка злодея!', 'good');
+      }
+    }
+    // Злодей по правилам → призрак slows
+    if(story.sad_villain === 'rules'){
+      state.ghostTimer += dt;
+      if(state.ghostTimer >= 12){
+        state.ghostTimer = 0;
+        state.timer -= 1.5;
+        showGhost('👻💔', 'Призрак украл время', 'bad');
+      }
+    }
+    // Шёпот на ленте появляется
+    if(state.level.hasWhisper && !state.whisperShown && state.sortedCount >= state.level.whisperAfter){
+      state.whisperShown = true;
+      $('whisperBtn').classList.add('show');
+    }
+  }
+
+  updateHUD();
+  if(state.sortedCount >= state.level.pool.length * 3 || state.timer <= 0){
+    // Не критично, просто финалим по таймеру или по достижению цели
+  }
+}
+function loop(t){
+  const dt = Math.min((t - last) / 1000, 0.05);
+  last = t;
+  if(state.running && !state.paused && !state.levelEnded) update(dt);
+  requestAnimationFrame(loop);
+}
+
+function autoSortOne(){
+  const candidates = state.objects.filter(o=>!o.removed && !o.isNamed && !o.dragging);
+  if(!candidates.length) return;
+  const c = candidates[Math.floor(Math.random()*candidates.length)];
+  c.removed = true;
+  c.el.classList.add('sorted');
+  setTimeout(()=>c.el.remove(), 400);
+  state.score += 5;
+  popup('+5', c.x, 'good');
+}
+
+function showGhost(emoji, text, cls){
+  const g = document.createElement('div');
+  g.className = 'ghost';
+  g.textContent = emoji;
+  g.style.left = '20px';
+  g.style.top = '50%';
+  beltArea.appendChild(g);
+  setTimeout(()=>{ g.style.opacity = '0'; setTimeout(()=>g.remove(), 400); }, 1200);
+  showToast(text, cls);
+}
+
+function removeObject(o, cls){
+  if(o.removed) return;
+  o.removed = true;
+  o.el.classList.remove('selected');
+  o.el.classList.add(cls || 'sorted');
+  setTimeout(()=>o.el.remove(), 400);
+  if(state.selected === o) state.selected = null;
+}
+function popup(text, x, cls){
+  const p = document.createElement('div');
+  p.className = 'pop ' + cls;
+  p.textContent = text;
+  p.style.left = Math.max(4, Math.min(x, beltArea.clientWidth - 60)) + 'px';
+  p.style.top = '30%';
+  beltArea.appendChild(p);
+  setTimeout(()=>p.remove(), 900);
+}
+function shake(){ document.body.classList.add('shake'); setTimeout(()=>document.body.classList.remove('shake'), 320); }
+
+/* ============================================================
+   RESOLVE BIN
+   ============================================================ */
+function resolveBin(binId){
+  if(state.paused || state.levelEnded) return;
+  const o = state.selected;
+  if(!o || o.removed){ flashBin(binId, 'err'); return; }
+  if(o.isNamed){
+    // Именной объект → дилемма независимо от контейнера
+    openDilemma(o.charId, o);
+    return;
+  }
+  if(o.data.c === binId){
+    state.combo = Math.min(state.combo + 1, 5);
+    const pts = 10 * state.combo;
+    state.score += pts;
+    state.sortedCount++;
+    state.heat = Math.max(0, state.heat - 8);
+    state.timer += 0.4;
+    popup('+' + pts, o.x, 'good');
+    flashBin(binId, 'hit');
+    removeObject(o, 'sorted');
+    updateComboBadge(); updateHUD();
+  } else {
+    state.combo = 0;
+    state.lives--;
+    state.heat = Math.min(100, state.heat + 12);
+    state.timer -= 3;
+    popup('−1 ❤️', o.x, 'bad');
+    flashBin(binId, 'err');
+    removeObject(o, 'wrong');
+    shake();
+    updateComboBadge(); updateHUD();
+    if(state.lives <= 0) endLevel(false);
+  }
+}
+
+/* ============================================================
+   DILEMMA
+   ============================================================ */
+function openDilemma(charId, obj, forced){
+  if(state.paused) return;
+  state.paused = true;
+  const ch = CHARACTERS[charId];
+  const opts = ch.options.map((o,i)=>`
+    <button data-choice="${o.flag}" class="${o.flag==='used'?'special':''}">
+      <b>${o.icon} ${o.label}</b><span>${o.desc}</span>
+    </button>`).join('');
+  showModal(`
+    <div class="dEm">${ch.emoji}</div>
+    <div class="dName">${forced ? 'Он уезжает… но ты слышишь его' : 'Именной объект'}</div>
+    <div class="dTitle">${ch.name}</div>
+    <div class="dPlea">«${ch.plea}»</div>
+    <div class="dOpts">${opts}</div>
+  `);
+  document.querySelectorAll('#modal .dOpts button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const flag = b.dataset.choice;
+      const choice = ch.options.find(x=>x.flag===flag);
+      resolveDilemma(charId, choice, obj);
+    });
+  });
+}
+
+function resolveDilemma(charId, choice, obj){
+  story[charId] = choice.flag;
+  state.score += choice.score;
+  if(choice.time) state.timer += choice.time;
+  state.timer += 3; // бонус за выбор
+  if(choice.flag === 'saved'){
+    // Спасённый остаётся как дух-союзник (визуально)
+    showToast('🕊 ' + CHARACTERS[charId].name + ' остался с тобой.', 'good');
+  } else if(choice.flag === 'rules'){
+    showToast('📋 Отправлен по правилам. Начальник доволен.', 'bad');
+  } else {
+    showToast('🌀 Ты использовал его по-своему.', 'magic');
+  }
+  if(obj){ removeObject(obj, 'sorted'); }
+  hideModal();
+  state.paused = false;
+  updateHUD(); updateComboBadge();
+}
+
+/* ============================================================
+   WHISPER
+   ============================================================ */
+$('whisperBtn').addEventListener('pointerdown', (e)=>{
+  e.preventDefault(); e.stopPropagation();
+  if(state.paused || state.whisperClicked) return;
+  state.whisperClicked = true;
+  state.paused = true;
+  showModal(`
+    <div class="dEm">👁️</div>
+    <div class="dName">Из угла ленты</div>
+    <div class="dTitle">Шёпот</div>
+    <div class="dPlea">«Псс… Ты замечал, что "уничтоженные" объекты возвращаются? Начальник не тот, кем кажется. Бюро собирает оружие из незавершённых вещей. Каждый "уничтоженный" — деталь.»</div>
+    <div class="dOpts">
+      <button data-choice="listened"><b>👂 Слушать</b><span>+15 к доверию Шёпота · −5 к доверию Начальника · Открывает ребельский путь</span></button>
+      <button data-choice="reported"><b>📢 Донести Начальнику</b><span>+150 очков · +10 к доверию Начальника · −20 к доверию Шёпота</span></button>
+      <button data-choice="ignored"><b>🚶 Игнорировать</b><span>Ничего не меняется</span></button>
+    </div>
+  `);
+  document.querySelectorAll('#modal .dOpts button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const c = b.dataset.choice;
+      story.whisper = c;
+      if(c === 'listened'){ showToast('👂 Ты выслушал Шёпот. Бюро не одобрит.', 'magic'); }
+      else if(c === 'reported'){ state.score += 150; showToast('📢 Начальник запомнит твою верность. +150', 'good'); }
+      else { showToast('🚶 Ты прошёл мимо. Шёпот растворился.', ''); }
+      $('whisperBtn').classList.remove('show');
+      hideModal();
+      state.paused = false;
+      updateHUD();
+    });
+  });
+});
+
+/* ============================================================
+   MODAL / TOAST
+   ============================================================ */
+function showModal(html){ modal.innerHTML = `<div class="card">${html}</div>`; modal.classList.remove('hidden'); }
+function hideModal(){ modal.classList.add('hidden'); }
+let toastTimer = null;
+function showToast(text, cls){
+  const t = $('toast');
+  t.textContent = text;
+  t.className = 'show ' + (cls || '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.className = ''; }, 3000);
+}
+
+/* ============================================================
+   END LEVEL
+   ============================================================ */
+function endLevel(win, reason){
+  if(state.levelEnded) return;
+  state.levelEnded = true;
+  state.running = false;
+  state.paused = true;
+  state.objects.forEach(o=>{ if(o.el.parentElement) o.el.remove(); });
+  state.objects = [];
+
+  const last = state.levelIndex >= LEVELS.length - 1;
+  const success = win !== false && state.lives > 0;
+
+  if(!success){
+    showModal(`
+      <div class="dEm">💔</div>
+      <div class="dTitle">${reason || 'Смена окончена'}</div>
+      <div class="dText" style="margin-top:8px;font-size:13px;opacity:.7">Жизни: ${state.lives} · Очки: ${state.score}</div>
+      <button class="btnBig" id="retryBtn">Повторить</button>
+    `);
+    $('retryBtn').addEventListener('click', ()=>{ hideModal(); startLevel(); });
+    return;
+  }
+
+  if(last){
+    showModal(`
+      <div class="dEm">🏁</div>
+      <div class="dTitle">Конец прототипа</div>
+      <div class="dText" style="font-size:13px;line-height:1.55;text-align:left;margin-top:10px">
+        Ты прошёл 3 уровня. Вот что осталось после тебя:
+      </div>
+      ${storyLog()}
+      <div class="stats">
+        <div>Очки: <b>${state.score}</b></div>
+      </div>
+      <button class="btnBig" id="againBtn">Сыграть снова</button>
+    `);
+    $('againBtn').addEventListener('click', ()=>{
+      hideModal();
+      story.sad_villain = 'rules'; story.robot_kitten = null; story.whisper = null;
+      state.levelIndex = 0; state.score = 0; startLevel();
+    });
+    return;
+  }
+
+  showModal(`
+    <div class="dEm">🎉</div>
+    <div class="dTitle">Уровень пройден</div>
+    <div class="dText" style="font-size:13px;opacity:.7">${state.level.name}</div>
+    ${storyLog()}
+    <div class="stats"><div>Очки: <b>${state.score}</b></div></div>
+    <button class="btnBig" id="nextBtn">Дальше →</button>
+  `);
+  $('nextBtn').addEventListener('click', ()=>{
+    hideModal();
+    state.levelIndex++;
+    startLevel();
+  });
+}
+
+function storyLog(){
+  const items = [];
+  if(story.sad_villain) items.push({icon:'🦹', name:'Грустный злодей',
+    val: story.sad_villain === 'saved' ? 'спасён и вернётся' : story.sad_villain === 'rules' ? 'уничтожен по правилам' : 'использован',
+    cls: story.sad_villain});
+  if(story.robot_kitten) items.push({icon:'🤖', name:'Робот-котёнок',
+    val: story.robot_kitten === 'saved' ? 'оставлен как есть' : story.robot_kitten === 'rules' ? 'разобран по правилам' : 'на запчасти',
+    cls: story.robot_kitten});
+  if(story.whisper) items.push({icon:'👁️', name:'Шёпот',
+    val: story.whisper === 'listened' ? 'выслушан' : story.whisper === 'reported' ? 'донесён Начальнику' : 'проигнорирован',
+    cls: story.whisper === 'listened' ? 'saved' : story.whisper === 'reported' ? 'rules' : 'ignored'});
+  if(!items.length) return '';
+  return `<div class="story-log">${items.map(i=>`
+    <div class="item ${i.cls}">${i.icon} <b>${i.name}</b> — ${i.val}</div>`).join('')}</div>`;
+}
+
+/* ============================================================
+   START LEVEL
+   ============================================================ */
+function startLevel(){
+  state.level = LEVELS[state.levelIndex];
+  // Сбрасываем историю ТОЛЬКО для персонажа этого уровня (остальные сохраняются)
+  if(state.level.named) story[state.level.named] = null;
+
+  state.objects.forEach(o=>{ if(o.el.parentElement) o.el.remove(); });
+  state.objects = [];
+  state.selected = null;
+  state.lives = 3;
+  state.combo = 0;
+  state.timer = state.level.duration;
+  state.timerMax = state.level.duration;
+  state.heat = 0;
+  state.spawnTimer = 0.6;
+  state.sortedCount = 0;
+  state.namedSpawned = false;
+  state.toolCooldowns = { lasso:0, core:0 };
+  state.allyTimer = 0; state.ghostTimer = 0;
+  state.whisperShown = false; state.whisperClicked = false;
+  $('whisperBtn').classList.remove('show');
+
+  state.paused = false;
+  state.levelEnded = false;
+  state.running = true;
+
+  renderBins();
+  renderTools();
+  updateHUD();
+  updateComboBadge();
+  updateToolVisuals();
+
+  if(state.level.intro){
+    showToast(state.level.intro, 'magic');
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+showModal(`
+  <div class="dEm">🏭</div>
+  <div class="dTitle">Бюро Незавершённых Вещей</div>
+  <div class="dText" style="text-align:left;font-size:13px;line-height:1.6;margin-top:12px">
+    <p>Ты — Сортировщик 7-го разряда. Первый день.</p>
+    <p style="margin-top:8px"><b>Как играть:</b></p>
+    <ul style="margin:6px 0 0 18px;padding:0">
+      <li>Тапни объект → тапни контейнер (или перетащи).</li>
+      <li>Скорость растёт. Комбо ускоряет ленту. <b>Перегрев</b> убивает.</li>
+      <li>Иногда на ленте появляется <b>именной объект</b> (фиолетовый). Тапни его — увидишь историю и выбор.</li>
+      <li><b>Твой выбор сохраняется между уровнями.</b> Спасённые вернутся. Уничтоженные — тоже.</li>
+    </ul>
+    <p style="margin-top:10px;opacity:.6;font-size:11.5px">3 уровня. Прототип.</p>
+  </div>
+  <button class="btnBig" id="startBtn">Начать смену</button>
+`);
+$('startBtn').addEventListener('click', ()=>{
+  hideModal();
+  story.sad_villain = 'rules'; story.robot_kitten = null; story.whisper = null;
+  state.levelIndex = 0; state.score = 0;
+  startLevel();
+});
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
