@@ -15,32 +15,6 @@
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
   #app{width:min(580px,100%);display:flex;flex-direction:column;gap:8px}
 
-  /* Кинематографичный экран */
-  #storyScreen{position:fixed;inset:0;background:#04060d;z-index:200;
-    display:flex;align-items:center;justify-content:center;transition:opacity .6s}
-  #storyScreen.hidden{display:none}
-  #storyScreen.fadeout{opacity:0;pointer-events:none}
-  .story-bg{position:absolute;inset:0;overflow:hidden;
-    background:radial-gradient(circle at 50% 50%,#0a1228,#02040a 70%)}
-  .story-bg::before,.story-bg::after{content:'';position:absolute;border-radius:50%;
-    background:radial-gradient(circle,rgba(108,140,255,.18),transparent 70%);
-    animation:storyFloat 12s ease-in-out infinite}
-  .story-bg::before{width:400px;height:400px;left:-100px;top:-100px}
-  .story-bg::after{width:500px;height:500px;right:-150px;bottom:-150px;animation-delay:-6s}
-  @keyframes storyFloat{50%{transform:translate(60px,-40px) scale(1.15)}}
-  .story-content{position:relative;max-width:520px;padding:30px;text-align:center;
-    font-size:15px;line-height:1.8;z-index:1}
-  .story-line{opacity:0;animation:storyFadeIn .9s ease-out forwards;margin:10px 0}
-  .story-line.title{font-size:26px;font-weight:900;color:#a86bff;letter-spacing:3px;
-    margin-bottom:28px;text-transform:uppercase}
-  .story-line.subtitle{font-size:13px;opacity:.6;letter-spacing:2px;margin-bottom:18px}
-  .story-line.italic{font-style:italic;color:#b8c8ff}
-  @keyframes storyFadeIn{to{opacity:1}}
-  .story-skip{position:absolute;bottom:26px;right:26px;font-size:12px;opacity:.5;
-    cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.15);
-    transition:.2s}
-  .story-skip:hover{opacity:1;border-color:rgba(255,255,255,.4)}
-
   #hud{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12px}
   .chip{background:rgba(255,255,255,.06);border:1px solid rgba(120,150,255,.2);
     padding:4px 9px;border-radius:10px;white-space:nowrap}
@@ -75,8 +49,10 @@
   #comboBadge.bump{animation:comboBump .3s}
   @keyframes comboBump{50%{transform:scale(1.4)}}
 
-  #hint{position:absolute;bottom:2px;left:0;right:0;text-align:center;
-    font-size:9.5px;opacity:.3;pointer-events:none}
+  #tutorialHint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    font-size:11.5px;padding:6px 14px;border-radius:10px;
+    background:rgba(20,28,48,.85);border:1px solid rgba(108,140,255,.35);
+    white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;z-index:12}
 
   .obj{position:absolute;top:50%;left:0;margin-top:-40px;width:76px;height:80px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
@@ -108,7 +84,7 @@
   .bin.drop-hover{border-color:#ffc94d;background:linear-gradient(180deg,#3d3216,#101728);
     transform:scale(1.06);box-shadow:0 0 25px rgba(255,201,77,.5)}
 
-  #toolBar{display:flex;gap:8px;justify-content:center}
+  #toolBar{display:flex;gap:8px;justify-content:center;min-height:36px}
   .tool{flex:0 0 auto;min-width:110px;padding:8px 14px;border-radius:12px;
     background:linear-gradient(180deg,#1a2240,#101728);
     border:1px solid rgba(120,150,255,.3);font-size:12px;cursor:pointer;
@@ -135,21 +111,51 @@
   .ghost{position:absolute;font-size:24px;pointer-events:none;z-index:12;
     filter:drop-shadow(0 0 10px rgba(200,107,255,.7));transition:opacity .3s}
 
-  #modal{position:fixed;inset:0;background:rgba(4,7,15,.87);backdrop-filter:blur(7px);
+  #modal{position:fixed;inset:0;background:rgba(4,7,15,.9);backdrop-filter:blur(7px);
     display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
   #modal.hidden{display:none}
-  .card{width:min(490px,100%);max-height:92vh;overflow-y:auto;
+  .card{width:min(500px,100%);max-height:92vh;overflow-y:auto;
     background:linear-gradient(180deg,#131c33,#0c1222);
     border:1px solid rgba(120,150,255,.28);border-radius:22px;padding:22px;
-    animation:cardIn .25s ease-out}
-  @keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.97)}}
+    animation:cardIn .3s ease-out}
+  @keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.97)}}
+  .intro-emoji{font-size:56px;text-align:center;line-height:1;margin-bottom:6px;
+    animation:emojiFloat 3s ease-in-out infinite}
+  @keyframes emojiFloat{50%{transform:translateY(-6px)}}
+  .intro-kicker{font-size:11px;text-align:center;opacity:.5;letter-spacing:3px;
+    text-transform:uppercase;margin-bottom:4px}
+  .intro-title{font-size:21px;font-weight:900;text-align:center;line-height:1.2;
+    background:linear-gradient(90deg,#a86bff,#6c8cff);-webkit-background-clip:text;
+    background-clip:text;color:transparent}
+  .intro-body{font-size:14px;line-height:1.65;opacity:.85;margin-top:14px;
+    padding:14px;background:rgba(255,255,255,.03);border-radius:12px;
+    border-left:3px solid rgba(108,140,255,.5)}
+  .intro-body.speaker-boss{border-left-color:rgba(255,201,77,.7);
+    background:rgba(255,201,77,.05)}
+  .intro-body.speaker-whisper{border-left-color:rgba(200,107,255,.7);
+    background:rgba(200,107,255,.05);font-style:italic}
+  .speaker-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    opacity:.65;margin-bottom:6px;font-weight:700}
+  .speaker-boss .speaker-label{color:#ffc94d}
+  .speaker-whisper .speaker-label{color:#c86bff}
+  .rules-list{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .rules-list .rule{display:flex;gap:10px;align-items:flex-start;
+    background:rgba(255,255,255,.04);padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5}
+  .rules-list .rule .icon{font-size:18px;flex-shrink:0}
+  .intro-progress{display:flex;gap:5px;justify-content:center;margin-top:18px}
+  .intro-progress .dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15);
+    transition:background .2s,width .2s}
+  .intro-progress .dot.active{background:#6c8cff;width:18px;border-radius:3px}
+  .intro-progress .dot.done{background:rgba(108,140,255,.5)}
+
   .dEm{font-size:52px;text-align:center;line-height:1}
   .dName{font-size:12px;text-align:center;opacity:.55;margin-top:6px;
     letter-spacing:2px;text-transform:uppercase}
   .dTitle{font-size:19px;font-weight:800;text-align:center;margin-top:2px}
-  .dPlea{font-size:14px;opacity:.85;text-align:center;margin-top:12px;line-height:1.55;
+  .dPlea{font-size:14px;opacity:.85;text-align:center;margin-top:12px;line-height:1.6;
     font-style:italic;padding:12px;background:rgba(255,255,255,.04);border-radius:12px;
     border-left:3px solid rgba(200,107,255,.6)}
+  .dText{font-size:14px;opacity:.85;margin-top:12px;line-height:1.6}
   .dOpts{display:flex;flex-direction:column;gap:8px;margin-top:16px}
   .dOpts button{display:flex;flex-direction:column;gap:3px;text-align:left;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
@@ -160,7 +166,6 @@
   .dOpts button b{font-size:14px}
   .dOpts button span{font-size:11.5px;opacity:.65}
   .dOpts button.special{border-color:rgba(200,107,255,.5);background:rgba(200,107,255,.08)}
-  .dOpts button.special:hover{background:rgba(200,107,255,.18)}
 
   .btnBig{width:100%;margin-top:16px;padding:14px;border-radius:14px;border:none;
     background:linear-gradient(135deg,#6c8cff,#a86bff);color:#fff;
@@ -192,14 +197,6 @@
 </style>
 </head>
 <body>
-
-<!-- Кинематографичный экран -->
-<div id="storyScreen" class="hidden">
-  <div class="story-bg"></div>
-  <div class="story-content" id="storyContent"></div>
-  <div class="story-skip" id="storySkip">Пропустить →</div>
-</div>
-
 <div id="app">
   <div id="hud">
     <div class="chip" id="levelChip">Ур 1/3</div>
@@ -215,7 +212,7 @@
     <div id="belt"></div>
     <div id="comboBadge"></div>
     <div id="whisperBtn">👁️</div>
-    <div id="hint">тапни объект → контейнер · или перетащи</div>
+    <div id="tutorialHint"></div>
   </div>
   <div id="bins"></div>
   <div id="toolBar"></div>
@@ -229,35 +226,33 @@
    ============================================================ */
 const CHARACTERS = {
   sad_villain: {
-    emoji:'🦹', name:'Грустный злодей',
+    emoji:'🦹', name:'Грустный злодей', onBeltName:'Злодей',
     plea:'Пожалуйста… не в Опасное. У меня на руках котёнок. Он не переживёт конвейер.',
-    onBeltName:'Злодей',
     options:[
-      { id:'rules', icon:'📋', label:'По правилам', desc:'+100 очков · Начальник одобряет',
-        score:+100, time:0, flag:'rules' },
-      { id:'saved', icon:'🕊', label:'Помочь', desc:'−50 очков · −10 секунд · Вернётся союзником',
-        score:-50, time:-10, flag:'saved' },
-      { id:'used', icon:'🌀', label:'Забрать котёнка', desc:'Злодей уйдёт с благодарностью',
-        score:0, time:0, flag:'used' }
+      { flag:'rules', icon:'📋', label:'По правилам', desc:'+100 очков · Начальник одобряет',
+        score:+100, time:0 },
+      { flag:'saved', icon:'🕊', label:'Помочь', desc:'−50 очков · −10 секунд · Вернётся союзником',
+        score:-50, time:-10 },
+      { flag:'used', icon:'🌀', label:'Забрать котёнка', desc:'Злодей уйдёт с благодарностью',
+        score:0, time:0 }
     ]
   },
   robot_kitten: {
-    emoji:'🤖', name:'Робот-котёнок',
+    emoji:'🤖', name:'Робот-котёнок', onBeltName:'Робокот',
     plea:'Мяу. Я… я не знаю, что я. Техника или животное? Меня разберут, если я не впишусь.',
-    onBeltName:'Робокот',
     options:[
-      { id:'rules', icon:'📋', label:'В «Технику»', desc:'+100 очков · Начальник одобряет',
-        score:+100, time:0, flag:'rules' },
-      { id:'saved', icon:'🕊', label:'Оставить как есть', desc:'−50 очков · −10 секунд · Станет помощником',
-        score:-50, time:-10, flag:'saved' },
-      { id:'used', icon:'🌀', label:'Разобрать на запчасти', desc:'+50 очков',
-        score:+50, time:0, flag:'used' }
+      { flag:'rules', icon:'📋', label:'В «Технику»', desc:'+100 очков · Начальник одобряет',
+        score:+100, time:0 },
+      { flag:'saved', icon:'🕊', label:'Оставить как есть', desc:'−50 очков · −10 секунд · Станет помощником',
+        score:-50, time:-10 },
+      { flag:'used', icon:'🌀', label:'Разобрать на запчасти', desc:'+50 очков',
+        score:+50, time:0 }
     ]
   }
 };
 
 /* ============================================================
-   УРОВНИ — теперь с полем target
+   УРОВНИ
    ============================================================ */
 const LEVELS = [
 {
@@ -269,8 +264,7 @@ const LEVELS = [
     {e:'🐝',n:'Оса',c:'danger'},{e:'🌷',n:'Тюльпан',c:'plant'},{e:'🍕',n:'Пицца',c:'food'},
     {e:'🦂',n:'Скорпион',c:'danger'}
   ],
-  named:'sad_villain',
-  intro:['Смена началась.','Лента уже движется.','Начальник наблюдает.']
+  named:'sad_villain'
 },
 {
   name:'Робот-котёнок', duration:90, target:15, namedAfter:6,
@@ -281,11 +275,10 @@ const LEVELS = [
     {e:'🍫',n:'Шоколад',c:'sweet'},{e:'📰',n:'Газета',c:'trash'},{e:'🪆',n:'Матрёшка',c:'toy'},
     {e:'🍩',n:'Пончик',c:'sweet'}
   ],
-  named:'robot_kitten',
-  intro:['Новый инструмент — Лассо.','Дотянись до объекта, если он уезжает.','Но что-то на ленте не так.']
+  named:'robot_kitten'
 },
 {
-  name:'Проверка', duration:100, target:18, namedAfter:999,
+  name:'Инспекция', duration:100, target:18,
   bins:[{id:'animal',e:'🐾',n:'Животные'},{id:'plant',e:'🌿',n:'Растения'},{id:'tech',e:'⚙️',n:'Техника'}],
   pool:[
     {e:'🐶',n:'Собака',c:'animal'},{e:'🌿',n:'Папоротник',c:'plant'},{e:'📱',n:'Телефон',c:'tech'},
@@ -293,18 +286,90 @@ const LEVELS = [
     {e:'🐹',n:'Хомяк',c:'animal'},{e:'💻',n:'Ноутбук',c:'tech'},{e:'🌵',n:'Кактус',c:'plant'},
     {e:'🐢',n:'Черепаха',c:'animal'},{e:'📺',n:'Телевизор',c:'tech'},{e:'🍀',n:'Клевер',c:'plant'}
   ],
-  hasWhisper:true, whisperAfter:4,
-  intro:['Инспекция.','Соблюдай правила.','Но кто-то шепчет из угла…']
+  hasWhisper:true, whisperAfter:4
 }
 ];
 
 /* ============================================================
-   STORY FLAGS
+   ВСТУПЛЕНИЕ (4 шага)
+   ============================================================ */
+const INTRO_SEQUENCE = [
+  {
+    emoji:'🏭',
+    kicker:'Смена 7-го разряда',
+    title:'Бюро Незавершённых Вещей',
+    body:'Здесь заканчивают свой путь объекты, которые не вписались в реальность. Сломанные игрушки. Забытые идеи. Персонажи из недописанных книг. Эмоции, которые никто не испытал.',
+    btn:'Кто я?'
+  },
+  {
+    emoji:'👤',
+    kicker:'Твоя роль',
+    title:'Сортировщик 7-го разряда',
+    body:'Ты только что устроился. Первый день. Твоя задача — брать объекты с конвейера и раскладывать их по контейнерам. Ошибка — минус жизнь. Успех — очки и признание Начальника.',
+    btn:'А что за голос?'
+  },
+  {
+    emoji:'🎧',
+    kicker:'Голос в наушнике',
+    title:'Начальник',
+    speaker:'boss',
+    body:'«Добро пожаловать, Сортировщик. Я буду следить за твоей сменой. Слушай меня — и всё будет хорошо. И вот что: иногда на ленте появляются «именные» объекты. Они будут говорить с тобой. Умолять. Не слушай их. Просто следуй правилам».',
+    btn:'Правила'
+  },
+  {
+    emoji:'📋',
+    kicker:'Туториал',
+    title:'Как играть',
+    rules:[
+      {icon:'👆', text:'Тапни объект на ленте → тапни нужный контейнер внизу. Или перетащи объект прямо в контейнер.'},
+      {icon:'⏱', text:'Смена длится 90 секунд. Вверху — счётчик: сколько объектов осталось отсортировать.'},
+      {icon:'🔥', text:'Лента перегревается от скопления объектов. Правильные ответы остужают её. Достигнет 100% — смена сорвана.'},
+      {icon:'👻', text:'Фиолетовый объект — именной. Тапни его, чтобы услышать историю. Твой выбор изменит следующие уровни.'}
+    ],
+    btn:'Начать смену'
+  }
+];
+
+/* ============================================================
+   ЗАСТАВКИ ПЕРЕД УРОВНЯМИ 2 И 3
+   ============================================================ */
+const LEVEL_INTROS = {
+  1: [
+    {
+      emoji:'🪢', kicker:'Новый инструмент', title:'Лассо',
+      speaker:'boss',
+      body:'«Держи. Если объект уезжает, а ты не успел — притяни его обратно. Один раз в 15 секунд. Не подведи».',
+      btn:'Дальше'
+    },
+    {
+      emoji:'🤖', kicker:'Среди обычных', title:'Что-то новое',
+      body:'Среди привычных объектов ты замечаешь… что-то, что смотрит на тебя. У него есть имя. И, кажется, история.',
+      btn:'Начать'
+    }
+  ],
+  2: [
+    {
+      emoji:'📋', kicker:'Инспекция', title:'Начальник',
+      speaker:'boss',
+      body:'«Сегодня за тобой наблюдают. Куратор лично проверяет смену. Соблюдай правила. Не подведи. И… если что-то услышишь — не слушай. Это шум системы».',
+      btn:'Дальше'
+    },
+    {
+      emoji:'👁️', kicker:'Из угла', title:'Шёпот',
+      speaker:'whisper',
+      body:'«Псс… ты ведь не веришь ему. Я вижу. Хорошо. Тогда слушай. То, что ты отправляешь в контейнеры — не исчезает. Оно падает в Пустоту. Куратор собирает из этого оружие. Я покажу тебе. Тапни меня на ленте — и я расскажу».',
+      btn:'Начать'
+    }
+  ]
+};
+
+/* ============================================================
+   ИСТОРИЯ (флаги)
    ============================================================ */
 const story = { sad_villain:null, robot_kitten:null, whisper:null };
 
 /* ============================================================
-   RUNTIME STATE
+   STATE
    ============================================================ */
 const $ = id => document.getElementById(id);
 const beltArea = $('beltArea');
@@ -327,8 +392,8 @@ const state = {
    ============================================================ */
 function updateHUD(){
   $('levelChip').textContent = `Ур ${state.levelIndex+1}/${LEVELS.length}`;
-  $('levelName').textContent = state.level.name;
-  $('progressChip').textContent = state.sortedCount + '/' + state.level.target;
+  $('levelName').textContent = state.level ? state.level.name : '—';
+  $('progressChip').textContent = state.sortedCount + '/' + (state.level ? state.level.target : 0);
   $('livesChip').textContent = '❤️'.repeat(Math.max(0,state.lives)) + '🖤'.repeat(Math.max(0,3-state.lives));
   $('scoreChip').textContent = state.score;
   const pct = Math.max(0, Math.min(100, state.timer / state.timerMax * 100));
@@ -349,7 +414,7 @@ function updateComboBadge(){
 }
 
 /* ============================================================
-   BINS
+   BINS / TOOLS
    ============================================================ */
 function renderBins(){
   const el = $('bins');
@@ -367,10 +432,6 @@ function flashBin(id, cls){
   b.classList.add(cls);
   setTimeout(()=>b.classList.remove(cls), 260);
 }
-
-/* ============================================================
-   TOOLBAR
-   ============================================================ */
 function renderTools(){
   const tb = $('toolBar');
   tb.innerHTML = '';
@@ -503,7 +564,7 @@ function spawnNamed(charId){
   el.innerHTML = `<span class="em">${ch.emoji}</span><span class="nm">${ch.onBeltName}</span>`;
   el.style.transform = `translateX(${w}px)`;
   beltArea.appendChild(el);
-  const o = { el, x:w, baseSpeed:w/8, data:{e:ch.emoji,n:ch.onBeltName,c:'__named__'},
+  const o = { el, x:w, baseSpeed:w/9, data:{e:ch.emoji,n:ch.onBeltName,c:'__named__'},
     removed:false, selected:false, dragging:false, isNamed:true, charId };
   el.addEventListener('pointerdown', e=>{
     if(state.paused || o.removed) return;
@@ -518,7 +579,9 @@ function spawnNamed(charId){
    ============================================================ */
 let last = performance.now();
 function update(dt){
-  // === ГЛАВНОЕ ИСПРАВЛЕНИЕ: проверка победы ===
+  if(!state.level) return;
+
+  // ПОБЕДА по цели
   if(state.sortedCount >= state.level.target){
     endLevel(true);
     return;
@@ -541,7 +604,7 @@ function update(dt){
     if(!state.namedSpawned && state.sortedCount >= state.level.namedAfter && state.level.named){
       state.namedSpawned = true;
       spawnNamed(state.level.named);
-      showToast('⚠️ Особый объект на ленте', 'magic');
+      showToast('⚠️ Именной объект на ленте. Тапни его — но помни, что сказал Начальник.', 'magic');
     } else {
       const item = state.level.pool[Math.floor(Math.random()*state.level.pool.length)];
       spawnObject(item);
@@ -599,8 +662,33 @@ function update(dt){
     }
   }
 
+  // Туториал для уровня 1
+  if(state.levelIndex === 0) updateTutorialHint();
+
   updateHUD();
 }
+
+function updateTutorialHint(){
+  const el = $('tutorialHint');
+  if(!el) return;
+  let txt = '';
+  let show = true;
+  if(state.sortedCount >= 3) show = false;
+  else if(state.sortedCount === 0 && state.objects.filter(o=>!o.removed).length === 0){
+    txt = '⏳ Лента сейчас начнёт движение…';
+  } else if(state.sortedCount === 0 && !state.selected){
+    txt = '👆 Тапни объект на ленте, чтобы выбрать его';
+  } else if(state.sortedCount === 0 && state.selected){
+    txt = '📦 Теперь тапни правильный контейнер внизу';
+  } else if(state.sortedCount === 1){
+    txt = '✅ Отлично! Продолжай. Не дай объектам уехать за левый край.';
+  } else if(state.sortedCount === 2){
+    txt = '🔥 Правильные ответы подряд дают комбо и очки ×2, ×3…';
+  }
+  el.textContent = txt;
+  el.style.opacity = show ? '.9' : '0';
+}
+
 function loop(t){
   const dt = Math.min((t - last) / 1000, 0.05);
   last = t;
@@ -618,18 +706,15 @@ function autoSortOne(){
   state.score += 5;
   popup('+5', c.x, 'good');
 }
-
 function showGhost(emoji, text, cls){
   const g = document.createElement('div');
   g.className = 'ghost';
   g.textContent = emoji;
-  g.style.left = '20px';
-  g.style.top = '50%';
+  g.style.left = '20px'; g.style.top = '50%';
   beltArea.appendChild(g);
   setTimeout(()=>{ g.style.opacity = '0'; setTimeout(()=>g.remove(), 400); }, 1200);
   showToast(text, cls);
 }
-
 function removeObject(o, cls){
   if(o.removed) return;
   o.removed = true;
@@ -689,7 +774,7 @@ function openDilemma(charId, obj, forced){
   if(state.paused) return;
   state.paused = true;
   const ch = CHARACTERS[charId];
-  const opts = ch.options.map((o,i)=>`
+  const opts = ch.options.map(o=>`
     <button data-choice="${o.flag}" class="${o.flag==='used'?'special':''}">
       <b>${o.icon} ${o.label}</b><span>${o.desc}</span>
     </button>`).join('');
@@ -723,7 +808,7 @@ function resolveDilemma(charId, choice, obj){
 }
 
 /* ============================================================
-   WHISPER
+   WHISPER (уровень 3)
    ============================================================ */
 $('whisperBtn').addEventListener('pointerdown', (e)=>{
   e.preventDefault(); e.stopPropagation();
@@ -734,23 +819,53 @@ $('whisperBtn').addEventListener('pointerdown', (e)=>{
     <div class="dEm">👁️</div>
     <div class="dName">Из угла ленты</div>
     <div class="dTitle">Шёпот</div>
-    <div class="dPlea">«Псс… Ты замечал, что "уничтоженные" объекты возвращаются? Начальник не тот, кем кажется. Бюро собирает оружие из незавершённых вещей.»</div>
+    <div class="dPlea" style="text-align:left">
+      «Слушай внимательно, потому что я скажу это только раз.<br><br>
+      То, что ты отправляешь в контейнеры — не исчезает. Оно падает в <b>Пустоту</b>, глубоко под полом Бюро. Куратор собирает из этого оружие. Каждый «уничтоженный» объект — деталь.<br><br>
+      Я был таким же Сортировщиком. Тридцать лет назад. Теперь я — то, что от меня осталось.<br><br>
+      Ты можешь помочь им. Или донести на меня Начальнику. Выбор есть только сейчас.»
+    </div>
     <div class="dOpts">
-      <button data-choice="listened"><b>👂 Слушать</b><span>+15 к доверию Шёпота · Открывает ребельский путь</span></button>
-      <button data-choice="reported"><b>📢 Донести Начальнику</b><span>+150 очков · Начальник запомнит</span></button>
-      <button data-choice="ignored"><b>🚶 Игнорировать</b><span>Ничего не меняется</span></button>
+      <button data-choice="listened"><b>👂 Выслушать до конца</b><span>Ты узнаешь правду о Бюро</span></button>
+      <button data-choice="reported"><b>📢 Донести Начальнику</b><span>+150 очков · Начальник запомнит верность</span></button>
+      <button data-choice="ignored"><b>🚶 Промолчать</b><span>Ты ничего не слышал</span></button>
     </div>
   `);
   document.querySelectorAll('#modal .dOpts button').forEach(b=>{
     b.addEventListener('click', ()=>{
       const c = b.dataset.choice;
       story.whisper = c;
-      if(c === 'listened') showToast('👂 Ты выслушал Шёпот. Бюро не одобрит.', 'magic');
-      else if(c === 'reported'){ state.score += 150; showToast('📢 Начальник запомнит твою верность. +150', 'good'); }
-      else showToast('🚶 Ты прошёл мимо. Шёпот растворился.', '');
+      if(c === 'listened'){
+        showToast('👂 Шёпот: «Я запомню это. На следующей смене — жди меня».', 'magic');
+        setTimeout(()=>{
+          showModal(`
+            <div class="dEm">👁️</div>
+            <div class="dTitle">Шёпот</div>
+            <div class="dPlea">«Спасибо. Теперь ты знаешь. Ищи меня на ленте — я появлюсь, когда придёт время. А пока — делай вид, что ничего не было. И не доверяй Куратору».'</div>
+            <button class="btnBig" data-close>Продолжить смену</button>
+          `);
+          document.querySelector('[data-close]').addEventListener('click', ()=>{ hideModal(); state.paused = false; });
+        }, 1600);
+      }
+      else if(c === 'reported'){
+        state.score += 150;
+        showToast('📢 Начальник: «Хорошая работа. Я знал, что на тебя можно положиться».', 'good');
+        setTimeout(()=>{
+          showModal(`
+            <div class="dEm">🎧</div>
+            <div class="dTitle">Начальник</div>
+            <div class="dPlea">«Куратор будет доволен. Продолжай сортировать. И больше не отвлекайся на шум».»</div>
+            <button class="btnBig" data-close>Продолжить</button>
+          `);
+          document.querySelector('[data-close]').addEventListener('click', ()=>{ hideModal(); state.paused = false; });
+        }, 1600);
+      }
+      else {
+        showToast('🚶 Ты прошёл мимо. Шёпот растворился.', '');
+        hideModal();
+        state.paused = false;
+      }
       $('whisperBtn').classList.remove('show');
-      hideModal();
-      state.paused = false;
       updateHUD();
     });
   });
@@ -767,7 +882,62 @@ function showToast(text, cls){
   t.textContent = text;
   t.className = 'show ' + (cls || '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ t.className = ''; }, 3000);
+  toastTimer = setTimeout(()=>{ t.className = ''; }, 3600);
+}
+
+/* ============================================================
+   ВСТУПЛЕНИЕ (пошагово)
+   ============================================================ */
+function runIntroSequence(onDone){
+  let idx = 0;
+  function showStep(){
+    if(idx >= INTRO_SEQUENCE.length){ hideModal(); onDone(); return; }
+    const step = INTRO_SEQUENCE[idx];
+    idx++;
+    let bodyHtml = '';
+    if(step.rules){
+      bodyHtml = `<div class="rules-list">${step.rules.map(r=>`
+        <div class="rule"><span class="icon">${r.icon}</span><span>${r.text}</span></div>`).join('')}</div>`;
+    } else {
+      const cls = step.speaker === 'boss' ? 'speaker-boss' : step.speaker === 'whisper' ? 'speaker-whisper' : '';
+      const speakerLabel = step.speaker === 'boss' ? '🎧 Начальник' : step.speaker === 'whisper' ? '👁️ Шёпот' : '';
+      bodyHtml = `<div class="intro-body ${cls}">${speakerLabel ? `<div class="speaker-label">${speakerLabel}</div>` : ''}${step.body}</div>`;
+    }
+    const dots = INTRO_SEQUENCE.map((_, i) =>
+      `<div class="dot ${i < idx-1 ? 'done' : i === idx-1 ? 'active' : ''}"></div>`).join('');
+    showModal(`
+      <div class="intro-emoji">${step.emoji}</div>
+      <div class="intro-kicker">${step.kicker}</div>
+      <div class="intro-title">${step.title}</div>
+      ${bodyHtml}
+      <div class="intro-progress">${dots}</div>
+      <button class="btnBig" data-advance>${step.btn}</button>
+    `);
+    document.querySelector('[data-advance]').addEventListener('click', showStep);
+  }
+  showStep();
+}
+
+function runLevelIntro(levelIdx, onDone){
+  const intros = LEVEL_INTROS[levelIdx];
+  if(!intros || !intros.length){ onDone(); return; }
+  let idx = 0;
+  function showStep(){
+    if(idx >= intros.length){ hideModal(); onDone(); return; }
+    const step = intros[idx];
+    idx++;
+    const cls = step.speaker === 'boss' ? 'speaker-boss' : step.speaker === 'whisper' ? 'speaker-whisper' : '';
+    const speakerLabel = step.speaker === 'boss' ? '🎧 Начальник' : step.speaker === 'whisper' ? '👁️ Шёпот' : '';
+    showModal(`
+      <div class="intro-emoji">${step.emoji}</div>
+      <div class="intro-kicker">${step.kicker}</div>
+      <div class="intro-title">${step.title}</div>
+      <div class="intro-body ${cls}">${speakerLabel ? `<div class="speaker-label">${speakerLabel}</div>` : ''}${step.body}</div>
+      <button class="btnBig" data-advance>${step.btn}</button>
+    `);
+    document.querySelector('[data-advance]').addEventListener('click', showStep);
+  }
+  showStep();
 }
 
 /* ============================================================
@@ -783,29 +953,29 @@ function endLevel(win, reason){
 
   const last = state.levelIndex >= LEVELS.length - 1;
 
-  // ПРОВАЛ
   if(!win){
     showModal(`
       <div class="dEm">💔</div>
       <div class="dTitle">${reason || 'Смена окончена'}</div>
-      <div class="dText" style="margin-top:8px;font-size:13px;opacity:.7">
-        Отсортировано: ${state.sortedCount}/${state.level.target} · Очки: ${state.score}
-      </div>
+      <div class="dText" style="text-align:center">Отсортировано: ${state.sortedCount}/${state.level.target}</div>
+      <div class="stats"><div>Очки: <b>${state.score}</b></div></div>
       <button class="btnBig" id="retryBtn">Повторить смену</button>
     `);
     $('retryBtn').addEventListener('click', ()=>{ hideModal(); startLevel(); });
     return;
   }
 
-  // ПОБЕДА на последнем уровне
   if(last){
     showModal(`
       <div class="dEm">🏁</div>
       <div class="dTitle">Конец прототипа</div>
-      <div class="dText" style="font-size:13px;line-height:1.55;text-align:left;margin-top:10px">
-        Ты прошёл 3 уровня. Вот что осталось после тебя:
+      <div class="dText" style="text-align:left">
+        Ты прошёл три смены. Вот что осталось после тебя:
       </div>
       ${storyLog()}
+      <div class="dText" style="font-size:12px;opacity:.65;margin-top:14px;text-align:left">
+        В полной версии: 10 уровней, призраки уничтоженных, инструменты, 6 концовок. Если хочешь — продолжаем.
+      </div>
       <div class="stats"><div>Очки: <b>${state.score}</b></div></div>
       <button class="btnBig" id="againBtn">Сыграть снова</button>
     `);
@@ -813,16 +983,20 @@ function endLevel(win, reason){
       hideModal();
       story.sad_villain = null; story.robot_kitten = null; story.whisper = null;
       state.levelIndex = 0; state.score = 0;
-      playIntro(()=> startLevel());
+      runIntroSequence(()=> startLevel());
     });
     return;
   }
 
-  // ПОБЕДА на промежуточном уровне
+  // Промежуточная победа
+  let bossLine = '';
+  if(state.levelIndex === 0) bossLine = '🎧 Начальник: «Хорошо. Один из объектов был… странным. Ты справился. Продолжай».';
+  else if(state.levelIndex === 1) bossLine = '🎧 Начальник: «Завтра инспекция. Не подведи. И не слушай то, чего нет».';
   showModal(`
     <div class="dEm">🎉</div>
     <div class="dTitle">Смена закрыта</div>
-    <div class="dText" style="font-size:13px;opacity:.7">${state.level.name}</div>
+    <div class="dText" style="text-align:center;opacity:.7">${state.level.name}</div>
+    ${bossLine ? `<div class="intro-body speaker-boss" style="margin-top:12px"><div class="speaker-label">🎧 Начальник</div>${bossLine.replace(/^🎧 Начальник: /,'')}</div>` : ''}
     ${storyLog()}
     <div class="stats"><div>Очки: <b>${state.score}</b></div></div>
     <button class="btnBig" id="nextBtn">Следующая смена →</button>
@@ -830,7 +1004,7 @@ function endLevel(win, reason){
   $('nextBtn').addEventListener('click', ()=>{
     hideModal();
     state.levelIndex++;
-    playLevelIntro(()=> startLevel());
+    runLevelIntro(state.levelIndex, ()=> startLevel());
   });
 }
 
@@ -851,62 +1025,7 @@ function storyLog(){
 }
 
 /* ============================================================
-   STORY / INTRO
-   ============================================================ */
-const INTRO_OPENING = [
-  {type:'title', text:'БЮРО НЕЗАВЕРШЁННЫХ ВЕЩЕЙ', delay:0},
-  {type:'subtitle', text:'Смена 7-го разряда', delay:900},
-  {type:'text', text:'Здесь заканчивают свой путь объекты,', delay:1800},
-  {type:'text', text:'которые не вписались в реальность.', delay:2300},
-  {type:'text', text:'Сломанные игрушки. Забытые идеи.', delay:2900},
-  {type:'text', text:'Персонажи из недописанных книг.', delay:3400},
-  {type:'text', text:'Эмоции, которые никто не испытал.', delay:3900},
-  {type:'italic', text:'Ты — новый Сортировщик.', delay:4800},
-  {type:'italic', text:'Твоя задача — навести порядок.', delay:5400},
-  {type:'text', text:'Но помни: у каждой вещи есть история.', delay:6200},
-  {type:'text', text:'И не все истории хотят заканчиваться.', delay:6900}
-];
-
-function showStoryScreen(lines, onDone){
-  const screen = $('storyScreen');
-  const content = $('storyContent');
-  content.innerHTML = lines.map(l => 
-    `<div class="story-line ${l.type}" style="animation-delay:${l.delay}ms">${l.text}</div>`
-  ).join('');
-  screen.classList.remove('hidden', 'fadeout');
-  let done = false;
-  const finish = () => {
-    if(done) return;
-    done = true;
-    screen.classList.add('fadeout');
-    setTimeout(()=>{
-      screen.classList.add('hidden');
-      screen.classList.remove('fadeout');
-      onDone();
-    }, 600);
-  };
-  $('storySkip').onclick = finish;
-  const totalTime = lines[lines.length-1].delay + 900;
-  setTimeout(finish, totalTime);
-}
-
-function playIntro(onDone){
-  showStoryScreen(INTRO_OPENING, onDone);
-}
-
-function playLevelIntro(onDone){
-  const lv = state.level;
-  const lines = (lv.intro || []).map((t,i) => ({
-    type: i === 0 ? 'title' : 'text',
-    text: t,
-    delay: i * 700
-  }));
-  if(!lines.length){ onDone(); return; }
-  showStoryScreen(lines, onDone);
-}
-
-/* ============================================================
-   START LEVEL
+   START LEVEL (исправленный)
    ============================================================ */
 function startLevel(){
   state.level = LEVELS[state.levelIndex];
@@ -937,35 +1056,15 @@ function startLevel(){
   updateHUD();
   updateComboBadge();
   updateToolVisuals();
+  // Сброс туториала
+  $('tutorialHint').textContent = '';
+  $('tutorialHint').style.opacity = '0';
 }
 
 /* ============================================================
    INIT
    ============================================================ */
-// Первый клик — показать вступление
-showModal(`
-  <div class="dEm">🏭</div>
-  <div class="dTitle">Бюро Незавершённых Вещей</div>
-  <div class="dText" style="text-align:left;font-size:13px;line-height:1.6;margin-top:12px">
-    <p>Ты — Сортировщик 7-го разряда. Первый день.</p>
-    <p style="margin-top:8px"><b>Как играть:</b></p>
-    <ul style="margin:6px 0 0 18px;padding:0">
-      <li>Тапни объект → тапни контейнер (или перетащи).</li>
-      <li>Отсортируй <b>цель</b> (счётчик в HUD) до конца смены.</li>
-      <li>Скорость растёт. Комбо ускоряет ленту. <b>Перегрев</b> убивает.</li>
-      <li>Именные объекты (фиолетовые) — тапни, чтобы увидеть историю.</li>
-      <li><b>Выбор сохраняется между уровнями.</b></li>
-    </ul>
-  </div>
-  <button class="btnBig" id="startBtn">Начать смену</button>
-`);
-$('startBtn').addEventListener('click', ()=>{
-  hideModal();
-  story.sad_villain = null; story.robot_kitten = null; story.whisper = null;
-  state.levelIndex = 0; state.score = 0;
-  playIntro(()=> playLevelIntro(()=> startLevel()));
-});
-
+runIntroSequence(()=> startLevel());
 requestAnimationFrame(loop);
 </script>
 </body>
