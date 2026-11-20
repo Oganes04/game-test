@@ -15,10 +15,37 @@
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
   #app{width:min(580px,100%);display:flex;flex-direction:column;gap:8px}
 
+  /* Кинематографичный экран */
+  #storyScreen{position:fixed;inset:0;background:#04060d;z-index:200;
+    display:flex;align-items:center;justify-content:center;transition:opacity .6s}
+  #storyScreen.hidden{display:none}
+  #storyScreen.fadeout{opacity:0;pointer-events:none}
+  .story-bg{position:absolute;inset:0;overflow:hidden;
+    background:radial-gradient(circle at 50% 50%,#0a1228,#02040a 70%)}
+  .story-bg::before,.story-bg::after{content:'';position:absolute;border-radius:50%;
+    background:radial-gradient(circle,rgba(108,140,255,.18),transparent 70%);
+    animation:storyFloat 12s ease-in-out infinite}
+  .story-bg::before{width:400px;height:400px;left:-100px;top:-100px}
+  .story-bg::after{width:500px;height:500px;right:-150px;bottom:-150px;animation-delay:-6s}
+  @keyframes storyFloat{50%{transform:translate(60px,-40px) scale(1.15)}}
+  .story-content{position:relative;max-width:520px;padding:30px;text-align:center;
+    font-size:15px;line-height:1.8;z-index:1}
+  .story-line{opacity:0;animation:storyFadeIn .9s ease-out forwards;margin:10px 0}
+  .story-line.title{font-size:26px;font-weight:900;color:#a86bff;letter-spacing:3px;
+    margin-bottom:28px;text-transform:uppercase}
+  .story-line.subtitle{font-size:13px;opacity:.6;letter-spacing:2px;margin-bottom:18px}
+  .story-line.italic{font-style:italic;color:#b8c8ff}
+  @keyframes storyFadeIn{to{opacity:1}}
+  .story-skip{position:absolute;bottom:26px;right:26px;font-size:12px;opacity:.5;
+    cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.15);
+    transition:.2s}
+  .story-skip:hover{opacity:1;border-color:rgba(255,255,255,.4)}
+
   #hud{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12px}
   .chip{background:rgba(255,255,255,.06);border:1px solid rgba(120,150,255,.2);
     padding:4px 9px;border-radius:10px;white-space:nowrap}
   .chip.gold{border-color:rgba(255,201,77,.4);color:#ffd166}
+  .chip.progress{border-color:rgba(61,220,151,.4);color:#3ddc97}
   .spacer{flex:1}
 
   #beltArea{position:relative;height:190px;border-radius:18px;overflow:hidden;
@@ -165,10 +192,19 @@
 </style>
 </head>
 <body>
+
+<!-- Кинематографичный экран -->
+<div id="storyScreen" class="hidden">
+  <div class="story-bg"></div>
+  <div class="story-content" id="storyContent"></div>
+  <div class="story-skip" id="storySkip">Пропустить →</div>
+</div>
+
 <div id="app">
   <div id="hud">
     <div class="chip" id="levelChip">Ур 1/3</div>
     <div class="chip" id="levelName">Первый день</div>
+    <div class="chip progress" id="progressChip">0/12</div>
     <div class="spacer"></div>
     <div class="chip" id="livesChip">❤️❤️❤️</div>
     <div class="chip gold" id="scoreChip">0</div>
@@ -189,7 +225,7 @@
 
 <script>
 /* ============================================================
-   ДАННЫЕ ПЕРСОНАЖЕЙ
+   ПЕРСОНАЖИ
    ============================================================ */
 const CHARACTERS = {
   sad_villain: {
@@ -197,12 +233,12 @@ const CHARACTERS = {
     plea:'Пожалуйста… не в Опасное. У меня на руках котёнок. Он не переживёт конвейер.',
     onBeltName:'Злодей',
     options:[
-      { id:'rules', icon:'📋', label:'По правилам', desc:'+100 очков · Начальник одобряет · −10 карма',
-        score:+100, time:0, trustBoss:+5, trustWhisper:-5, karma:-10, flag:'rules' },
-      { id:'saved', icon:'🕊', label:'Помочь', desc:'−50 очков · −10 секунд · Злодей вернётся союзником',
-        score:-50, time:-10, trustBoss:-5, trustWhisper:+10, karma:+15, flag:'saved' },
-      { id:'used', icon:'🌀', label:'Забрать котёнка', desc:'Злодей уходит в Опасное с благодарностью · +5 Шёпот',
-        score:0, time:0, trustBoss:0, trustWhisper:+5, karma:0, flag:'used' }
+      { id:'rules', icon:'📋', label:'По правилам', desc:'+100 очков · Начальник одобряет',
+        score:+100, time:0, flag:'rules' },
+      { id:'saved', icon:'🕊', label:'Помочь', desc:'−50 очков · −10 секунд · Вернётся союзником',
+        score:-50, time:-10, flag:'saved' },
+      { id:'used', icon:'🌀', label:'Забрать котёнка', desc:'Злодей уйдёт с благодарностью',
+        score:0, time:0, flag:'used' }
     ]
   },
   robot_kitten: {
@@ -210,22 +246,22 @@ const CHARACTERS = {
     plea:'Мяу. Я… я не знаю, что я. Техника или животное? Меня разберут, если я не впишусь.',
     onBeltName:'Робокот',
     options:[
-      { id:'rules', icon:'📋', label:'В контейнер «Техника»', desc:'+100 очков · Начальник одобряет',
-        score:+100, time:0, trustBoss:+5, trustWhisper:-5, karma:-10, flag:'rules' },
-      { id:'saved', icon:'🕊', label:'Оставить как есть', desc:'−50 очков · −10 секунд · Робокот станет помощником',
-        score:-50, time:-10, trustBoss:-5, trustWhisper:+10, karma:+15, flag:'saved' },
-      { id:'used', icon:'🌀', label:'Разобрать на запчасти', desc:'Получить «Ядро» (инструмент) · −15 карма',
-        score:+50, time:0, trustBoss:0, trustWhisper:-5, karma:-15, flag:'used' }
+      { id:'rules', icon:'📋', label:'В «Технику»', desc:'+100 очков · Начальник одобряет',
+        score:+100, time:0, flag:'rules' },
+      { id:'saved', icon:'🕊', label:'Оставить как есть', desc:'−50 очков · −10 секунд · Станет помощником',
+        score:-50, time:-10, flag:'saved' },
+      { id:'used', icon:'🌀', label:'Разобрать на запчасти', desc:'+50 очков',
+        score:+50, time:0, flag:'used' }
     ]
   }
 };
 
 /* ============================================================
-   УРОВНИ
+   УРОВНИ — теперь с полем target
    ============================================================ */
 const LEVELS = [
 {
-  name:'Первый день', duration:60, namedAfter:5,
+  name:'Первый день', duration:90, target:12, namedAfter:5,
   bins:[{id:'food',e:'🍽️',n:'Еда'},{id:'plant',e:'🌱',n:'Растения'},{id:'danger',e:'⚠️',n:'Опасное'}],
   pool:[
     {e:'🍌',n:'Банан',c:'food'},{e:'🌵',n:'Кактус',c:'plant'},{e:'🍎',n:'Яблоко',c:'food'},
@@ -233,11 +269,11 @@ const LEVELS = [
     {e:'🐝',n:'Оса',c:'danger'},{e:'🌷',n:'Тюльпан',c:'plant'},{e:'🍕',n:'Пицца',c:'food'},
     {e:'🦂',n:'Скорпион',c:'danger'}
   ],
-  named:'sad_villain', namedCategory:'danger'
+  named:'sad_villain',
+  intro:['Смена началась.','Лента уже движется.','Начальник наблюдает.']
 },
 {
-  name:'Робот-котёнок', duration:60, namedAfter:6,
-  intro:'Начальник: «Новый инструмент — Лассо. Дотянись до объекта, если он уезжает.»',
+  name:'Робот-котёнок', duration:90, target:15, namedAfter:6,
   bins:[{id:'trash',e:'🗑️',n:'Мусор'},{id:'toy',e:'🧸',n:'Игрушки'},{id:'sweet',e:'🍬',n:'Сладости'}],
   pool:[
     {e:'🍬',n:'Конфета',c:'sweet'},{e:'🧻',n:'Бумага',c:'trash'},{e:'🧸',n:'Мишка',c:'toy'},
@@ -245,11 +281,11 @@ const LEVELS = [
     {e:'🍫',n:'Шоколад',c:'sweet'},{e:'📰',n:'Газета',c:'trash'},{e:'🪆',n:'Матрёшка',c:'toy'},
     {e:'🍩',n:'Пончик',c:'sweet'}
   ],
-  named:'robot_kitten', namedCategory:'toy',
-  unlockTool:'lasso'
+  named:'robot_kitten',
+  intro:['Новый инструмент — Лассо.','Дотянись до объекта, если он уезжает.','Но что-то на ленте не так.']
 },
 {
-  name:'Проверка', duration:70, namedAfter:999,
+  name:'Проверка', duration:100, target:18, namedAfter:999,
   bins:[{id:'animal',e:'🐾',n:'Животные'},{id:'plant',e:'🌿',n:'Растения'},{id:'tech',e:'⚙️',n:'Техника'}],
   pool:[
     {e:'🐶',n:'Собака',c:'animal'},{e:'🌿',n:'Папоротник',c:'plant'},{e:'📱',n:'Телефон',c:'tech'},
@@ -257,18 +293,15 @@ const LEVELS = [
     {e:'🐹',n:'Хомяк',c:'animal'},{e:'💻',n:'Ноутбук',c:'tech'},{e:'🌵',n:'Кактус',c:'plant'},
     {e:'🐢',n:'Черепаха',c:'animal'},{e:'📺',n:'Телевизор',c:'tech'},{e:'🍀',n:'Клевер',c:'plant'}
   ],
-  hasWhisper:true, whisperAfter:4
+  hasWhisper:true, whisperAfter:4,
+  intro:['Инспекция.','Соблюдай правила.','Но кто-то шепчет из угла…']
 }
 ];
 
 /* ============================================================
-   ГЛОБАЛЬНОЕ СОСТОЯНИЕ (история)
+   STORY FLAGS
    ============================================================ */
-const story = {
-  sad_villain:'rules', // default for level 1 if player fails weirdly
-  robot_kitten:null,
-  whisper:null
-};
+const story = { sad_villain:null, robot_kitten:null, whisper:null };
 
 /* ============================================================
    RUNTIME STATE
@@ -279,15 +312,14 @@ const modal = $('modal');
 
 const state = {
   levelIndex:0, level:null,
-  score:0, lives:3, combo:0, doubt:0,
+  score:0, lives:3, combo:0,
   timer:0, timerMax:0, heat:0,
   objects:[], selected:null,
   running:false, paused:false, levelEnded:false,
   spawnTimer:0, sortedCount:0, namedSpawned:false,
-  toolCooldowns:{ lasso:0, core:0 },
+  toolCooldowns:{ lasso:0 },
   allyTimer:0, ghostTimer:0,
-  whisperShown:false, whisperClicked:false,
-  effectTimer:0
+  whisperShown:false, whisperClicked:false
 };
 
 /* ============================================================
@@ -296,12 +328,13 @@ const state = {
 function updateHUD(){
   $('levelChip').textContent = `Ур ${state.levelIndex+1}/${LEVELS.length}`;
   $('levelName').textContent = state.level.name;
+  $('progressChip').textContent = state.sortedCount + '/' + state.level.target;
   $('livesChip').textContent = '❤️'.repeat(Math.max(0,state.lives)) + '🖤'.repeat(Math.max(0,3-state.lives));
   $('scoreChip').textContent = state.score;
   const pct = Math.max(0, Math.min(100, state.timer / state.timerMax * 100));
   const tf = $('timerFill');
   tf.style.width = pct + '%';
-  tf.classList.toggle('low', state.timer < 10);
+  tf.classList.toggle('low', state.timer < 15);
   const hf = $('heatFill');
   hf.style.width = state.heat + '%';
   hf.classList.toggle('warn', state.heat > 70);
@@ -341,11 +374,9 @@ function flashBin(id, cls){
 function renderTools(){
   const tb = $('toolBar');
   tb.innerHTML = '';
-  if(!state.level.unlockTool && state.levelIndex === 0) return;
-  // Лассо доступно со 2-го уровня
   if(state.levelIndex >= 1){
     const lasso = document.createElement('div');
-    lasso.className = 'tool';
+    lasso.className = 'tool ready';
     lasso.dataset.tool = 'lasso';
     lasso.innerHTML = `<div class="cd-fill" style="transform:scaleX(0)"></div><span class="label">🪢 Лассо</span>`;
     lasso.addEventListener('pointerdown', ()=> useTool('lasso'));
@@ -369,15 +400,12 @@ function updateToolVisuals(){
 function useTool(tool){
   if(state.toolCooldowns[tool] > 0) return;
   if(tool === 'lasso'){
-    // Находим объект ближе всего к левому краю (но не именной)
     const candidates = state.objects.filter(o=>!o.removed && !o.isNamed && !o.dragging);
     if(!candidates.length){ showToast('Нечего тянуть.', 'bad'); return; }
     candidates.sort((a,b)=> a.x - b.x);
     const target = candidates[0];
-    // Притягиваем в середину ленты
     target.x = beltArea.clientWidth * 0.4;
     target.el.style.transform = `translateX(${target.x}px)`;
-    // Выделяем
     if(state.selected) state.selected.el.classList.remove('selected');
     state.selected = target;
     target.el.classList.add('selected');
@@ -387,7 +415,7 @@ function useTool(tool){
 }
 
 /* ============================================================
-   SPAWN + DRAG
+   DRAG
    ============================================================ */
 function setupDrag(o){
   const el = o.el;
@@ -477,7 +505,6 @@ function spawnNamed(charId){
   beltArea.appendChild(el);
   const o = { el, x:w, baseSpeed:w/8, data:{e:ch.emoji,n:ch.onBeltName,c:'__named__'},
     removed:false, selected:false, dragging:false, isNamed:true, charId };
-  // Именной объект: тап/перетаскивание → дилемма (не сортировка)
   el.addEventListener('pointerdown', e=>{
     if(state.paused || o.removed) return;
     e.preventDefault(); e.stopPropagation();
@@ -491,26 +518,27 @@ function spawnNamed(charId){
    ============================================================ */
 let last = performance.now();
 function update(dt){
-  if(state.timer <= 0){ endLevel(false); return; }
-  state.timer -= dt;
+  // === ГЛАВНОЕ ИСПРАВЛЕНИЕ: проверка победы ===
+  if(state.sortedCount >= state.level.target){
+    endLevel(true);
+    return;
+  }
+  if(state.timer <= 0){ endLevel(false, 'Смена окончена'); return; }
 
-  // Cooldowns
+  state.timer -= dt;
   for(const k in state.toolCooldowns){
     if(state.toolCooldowns[k] > 0) state.toolCooldowns[k] = Math.max(0, state.toolCooldowns[k] - dt);
   }
   updateToolVisuals();
 
-  // Heat: остывание если лента пуста
   const onBelt = state.objects.filter(o=>!o.removed).length;
   if(onBelt >= 5) state.heat = Math.min(100, state.heat + dt * 6);
   else if(onBelt < 3) state.heat = Math.max(0, state.heat - dt * 4);
   if(state.heat >= 100){ endLevel(false, 'Перегрев!'); return; }
 
-  // Spawn
   state.spawnTimer -= dt;
   if(state.spawnTimer <= 0){
-    // Named?
-    if(!state.namedSpawned && state.sortedCount >= state.level.namedAfter){
+    if(!state.namedSpawned && state.sortedCount >= state.level.namedAfter && state.level.named){
       state.namedSpawned = true;
       spawnNamed(state.level.named);
       showToast('⚠️ Особый объект на ленте', 'magic');
@@ -520,12 +548,10 @@ function update(dt){
     }
     const progress = 1 - state.timer / state.timerMax;
     let interval = Math.max(0.7, 1.7 - progress * 0.7);
-    // Комбо ускоряет
     interval *= (1 - state.combo * 0.05);
     state.spawnTimer = Math.max(0.45, interval);
   }
 
-  // Move
   const w = beltArea.clientWidth;
   const speedMul = 1 + (1 - state.timer/state.timerMax) * 0.6 + state.combo * 0.05;
   for(const o of state.objects){
@@ -536,26 +562,21 @@ function update(dt){
       o.removed = true;
       o.el.classList.add('miss');
       setTimeout(()=>o.el.remove(), 400);
-      if(o.isNamed){
-        // Именной не уезжает бесследно: принудительная дилемма
-        openDilemma(o.charId, o, true);
-        return;
-      }
+      if(o.isNamed){ openDilemma(o.charId, o, true); return; }
       state.lives--;
       state.combo = 0;
       state.heat = Math.min(100, state.heat + 8);
       popup('−1 ❤️', o.x, 'bad');
       shake();
       updateHUD(); updateComboBadge();
-      if(state.lives <= 0){ endLevel(false); return; }
+      if(state.lives <= 0){ endLevel(false, 'Жизни кончились'); return; }
     }
   }
   beltArea.classList.toggle('hot', state.heat > 70 || onBelt > 6);
   state.objects = state.objects.filter(o => !o.removed || o.el.parentElement);
 
-  // Consequences from previous choices (ур. 3)
+  // Последствия выборов на ур. 3
   if(state.levelIndex === 2){
-    // Злодей спасён → союзник каждые 15 сек auto-сортирует
     if(story.sad_villain === 'saved'){
       state.allyTimer += dt;
       if(state.allyTimer >= 15){
@@ -564,7 +585,6 @@ function update(dt){
         showGhost('👻💚', 'Авто-сортировка злодея!', 'good');
       }
     }
-    // Злодей по правилам → призрак slows
     if(story.sad_villain === 'rules'){
       state.ghostTimer += dt;
       if(state.ghostTimer >= 12){
@@ -573,7 +593,6 @@ function update(dt){
         showGhost('👻💔', 'Призрак украл время', 'bad');
       }
     }
-    // Шёпот на ленте появляется
     if(state.level.hasWhisper && !state.whisperShown && state.sortedCount >= state.level.whisperAfter){
       state.whisperShown = true;
       $('whisperBtn').classList.add('show');
@@ -581,9 +600,6 @@ function update(dt){
   }
 
   updateHUD();
-  if(state.sortedCount >= state.level.pool.length * 3 || state.timer <= 0){
-    // Не критично, просто финалим по таймеру или по достижению цели
-  }
 }
 function loop(t){
   const dt = Math.min((t - last) / 1000, 0.05);
@@ -640,18 +656,14 @@ function resolveBin(binId){
   if(state.paused || state.levelEnded) return;
   const o = state.selected;
   if(!o || o.removed){ flashBin(binId, 'err'); return; }
-  if(o.isNamed){
-    // Именной объект → дилемма независимо от контейнера
-    openDilemma(o.charId, o);
-    return;
-  }
+  if(o.isNamed){ openDilemma(o.charId, o); return; }
   if(o.data.c === binId){
     state.combo = Math.min(state.combo + 1, 5);
     const pts = 10 * state.combo;
     state.score += pts;
     state.sortedCount++;
     state.heat = Math.max(0, state.heat - 8);
-    state.timer += 0.4;
+    state.timer += 0.5;
     popup('+' + pts, o.x, 'good');
     flashBin(binId, 'hit');
     removeObject(o, 'sorted');
@@ -666,7 +678,7 @@ function resolveBin(binId){
     removeObject(o, 'wrong');
     shake();
     updateComboBadge(); updateHUD();
-    if(state.lives <= 0) endLevel(false);
+    if(state.lives <= 0) endLevel(false, 'Жизни кончились');
   }
 }
 
@@ -696,21 +708,15 @@ function openDilemma(charId, obj, forced){
     });
   });
 }
-
 function resolveDilemma(charId, choice, obj){
   story[charId] = choice.flag;
   state.score += choice.score;
   if(choice.time) state.timer += choice.time;
-  state.timer += 3; // бонус за выбор
-  if(choice.flag === 'saved'){
-    // Спасённый остаётся как дух-союзник (визуально)
-    showToast('🕊 ' + CHARACTERS[charId].name + ' остался с тобой.', 'good');
-  } else if(choice.flag === 'rules'){
-    showToast('📋 Отправлен по правилам. Начальник доволен.', 'bad');
-  } else {
-    showToast('🌀 Ты использовал его по-своему.', 'magic');
-  }
-  if(obj){ removeObject(obj, 'sorted'); }
+  state.timer += 3;
+  if(choice.flag === 'saved') showToast('🕊 ' + CHARACTERS[charId].name + ' остался с тобой.', 'good');
+  else if(choice.flag === 'rules') showToast('📋 Отправлен по правилам. Начальник доволен.', 'bad');
+  else showToast('🌀 Ты использовал его по-своему.', 'magic');
+  if(obj) removeObject(obj, 'sorted');
   hideModal();
   state.paused = false;
   updateHUD(); updateComboBadge();
@@ -728,10 +734,10 @@ $('whisperBtn').addEventListener('pointerdown', (e)=>{
     <div class="dEm">👁️</div>
     <div class="dName">Из угла ленты</div>
     <div class="dTitle">Шёпот</div>
-    <div class="dPlea">«Псс… Ты замечал, что "уничтоженные" объекты возвращаются? Начальник не тот, кем кажется. Бюро собирает оружие из незавершённых вещей. Каждый "уничтоженный" — деталь.»</div>
+    <div class="dPlea">«Псс… Ты замечал, что "уничтоженные" объекты возвращаются? Начальник не тот, кем кажется. Бюро собирает оружие из незавершённых вещей.»</div>
     <div class="dOpts">
-      <button data-choice="listened"><b>👂 Слушать</b><span>+15 к доверию Шёпота · −5 к доверию Начальника · Открывает ребельский путь</span></button>
-      <button data-choice="reported"><b>📢 Донести Начальнику</b><span>+150 очков · +10 к доверию Начальника · −20 к доверию Шёпота</span></button>
+      <button data-choice="listened"><b>👂 Слушать</b><span>+15 к доверию Шёпота · Открывает ребельский путь</span></button>
+      <button data-choice="reported"><b>📢 Донести Начальнику</b><span>+150 очков · Начальник запомнит</span></button>
       <button data-choice="ignored"><b>🚶 Игнорировать</b><span>Ничего не меняется</span></button>
     </div>
   `);
@@ -739,9 +745,9 @@ $('whisperBtn').addEventListener('pointerdown', (e)=>{
     b.addEventListener('click', ()=>{
       const c = b.dataset.choice;
       story.whisper = c;
-      if(c === 'listened'){ showToast('👂 Ты выслушал Шёпот. Бюро не одобрит.', 'magic'); }
+      if(c === 'listened') showToast('👂 Ты выслушал Шёпот. Бюро не одобрит.', 'magic');
       else if(c === 'reported'){ state.score += 150; showToast('📢 Начальник запомнит твою верность. +150', 'good'); }
-      else { showToast('🚶 Ты прошёл мимо. Шёпот растворился.', ''); }
+      else showToast('🚶 Ты прошёл мимо. Шёпот растворился.', '');
       $('whisperBtn').classList.remove('show');
       hideModal();
       state.paused = false;
@@ -776,19 +782,22 @@ function endLevel(win, reason){
   state.objects = [];
 
   const last = state.levelIndex >= LEVELS.length - 1;
-  const success = win !== false && state.lives > 0;
 
-  if(!success){
+  // ПРОВАЛ
+  if(!win){
     showModal(`
       <div class="dEm">💔</div>
       <div class="dTitle">${reason || 'Смена окончена'}</div>
-      <div class="dText" style="margin-top:8px;font-size:13px;opacity:.7">Жизни: ${state.lives} · Очки: ${state.score}</div>
-      <button class="btnBig" id="retryBtn">Повторить</button>
+      <div class="dText" style="margin-top:8px;font-size:13px;opacity:.7">
+        Отсортировано: ${state.sortedCount}/${state.level.target} · Очки: ${state.score}
+      </div>
+      <button class="btnBig" id="retryBtn">Повторить смену</button>
     `);
     $('retryBtn').addEventListener('click', ()=>{ hideModal(); startLevel(); });
     return;
   }
 
+  // ПОБЕДА на последнем уровне
   if(last){
     showModal(`
       <div class="dEm">🏁</div>
@@ -797,31 +806,31 @@ function endLevel(win, reason){
         Ты прошёл 3 уровня. Вот что осталось после тебя:
       </div>
       ${storyLog()}
-      <div class="stats">
-        <div>Очки: <b>${state.score}</b></div>
-      </div>
+      <div class="stats"><div>Очки: <b>${state.score}</b></div></div>
       <button class="btnBig" id="againBtn">Сыграть снова</button>
     `);
     $('againBtn').addEventListener('click', ()=>{
       hideModal();
-      story.sad_villain = 'rules'; story.robot_kitten = null; story.whisper = null;
-      state.levelIndex = 0; state.score = 0; startLevel();
+      story.sad_villain = null; story.robot_kitten = null; story.whisper = null;
+      state.levelIndex = 0; state.score = 0;
+      playIntro(()=> startLevel());
     });
     return;
   }
 
+  // ПОБЕДА на промежуточном уровне
   showModal(`
     <div class="dEm">🎉</div>
-    <div class="dTitle">Уровень пройден</div>
+    <div class="dTitle">Смена закрыта</div>
     <div class="dText" style="font-size:13px;opacity:.7">${state.level.name}</div>
     ${storyLog()}
     <div class="stats"><div>Очки: <b>${state.score}</b></div></div>
-    <button class="btnBig" id="nextBtn">Дальше →</button>
+    <button class="btnBig" id="nextBtn">Следующая смена →</button>
   `);
   $('nextBtn').addEventListener('click', ()=>{
     hideModal();
     state.levelIndex++;
-    startLevel();
+    playLevelIntro(()=> startLevel());
   });
 }
 
@@ -842,11 +851,65 @@ function storyLog(){
 }
 
 /* ============================================================
+   STORY / INTRO
+   ============================================================ */
+const INTRO_OPENING = [
+  {type:'title', text:'БЮРО НЕЗАВЕРШЁННЫХ ВЕЩЕЙ', delay:0},
+  {type:'subtitle', text:'Смена 7-го разряда', delay:900},
+  {type:'text', text:'Здесь заканчивают свой путь объекты,', delay:1800},
+  {type:'text', text:'которые не вписались в реальность.', delay:2300},
+  {type:'text', text:'Сломанные игрушки. Забытые идеи.', delay:2900},
+  {type:'text', text:'Персонажи из недописанных книг.', delay:3400},
+  {type:'text', text:'Эмоции, которые никто не испытал.', delay:3900},
+  {type:'italic', text:'Ты — новый Сортировщик.', delay:4800},
+  {type:'italic', text:'Твоя задача — навести порядок.', delay:5400},
+  {type:'text', text:'Но помни: у каждой вещи есть история.', delay:6200},
+  {type:'text', text:'И не все истории хотят заканчиваться.', delay:6900}
+];
+
+function showStoryScreen(lines, onDone){
+  const screen = $('storyScreen');
+  const content = $('storyContent');
+  content.innerHTML = lines.map(l => 
+    `<div class="story-line ${l.type}" style="animation-delay:${l.delay}ms">${l.text}</div>`
+  ).join('');
+  screen.classList.remove('hidden', 'fadeout');
+  let done = false;
+  const finish = () => {
+    if(done) return;
+    done = true;
+    screen.classList.add('fadeout');
+    setTimeout(()=>{
+      screen.classList.add('hidden');
+      screen.classList.remove('fadeout');
+      onDone();
+    }, 600);
+  };
+  $('storySkip').onclick = finish;
+  const totalTime = lines[lines.length-1].delay + 900;
+  setTimeout(finish, totalTime);
+}
+
+function playIntro(onDone){
+  showStoryScreen(INTRO_OPENING, onDone);
+}
+
+function playLevelIntro(onDone){
+  const lv = state.level;
+  const lines = (lv.intro || []).map((t,i) => ({
+    type: i === 0 ? 'title' : 'text',
+    text: t,
+    delay: i * 700
+  }));
+  if(!lines.length){ onDone(); return; }
+  showStoryScreen(lines, onDone);
+}
+
+/* ============================================================
    START LEVEL
    ============================================================ */
 function startLevel(){
   state.level = LEVELS[state.levelIndex];
-  // Сбрасываем историю ТОЛЬКО для персонажа этого уровня (остальные сохраняются)
   if(state.level.named) story[state.level.named] = null;
 
   state.objects.forEach(o=>{ if(o.el.parentElement) o.el.remove(); });
@@ -860,7 +923,7 @@ function startLevel(){
   state.spawnTimer = 0.6;
   state.sortedCount = 0;
   state.namedSpawned = false;
-  state.toolCooldowns = { lasso:0, core:0 };
+  state.toolCooldowns = { lasso:0 };
   state.allyTimer = 0; state.ghostTimer = 0;
   state.whisperShown = false; state.whisperClicked = false;
   $('whisperBtn').classList.remove('show');
@@ -874,15 +937,12 @@ function startLevel(){
   updateHUD();
   updateComboBadge();
   updateToolVisuals();
-
-  if(state.level.intro){
-    showToast(state.level.intro, 'magic');
-  }
 }
 
 /* ============================================================
    INIT
    ============================================================ */
+// Первый клик — показать вступление
 showModal(`
   <div class="dEm">🏭</div>
   <div class="dTitle">Бюро Незавершённых Вещей</div>
@@ -891,19 +951,19 @@ showModal(`
     <p style="margin-top:8px"><b>Как играть:</b></p>
     <ul style="margin:6px 0 0 18px;padding:0">
       <li>Тапни объект → тапни контейнер (или перетащи).</li>
+      <li>Отсортируй <b>цель</b> (счётчик в HUD) до конца смены.</li>
       <li>Скорость растёт. Комбо ускоряет ленту. <b>Перегрев</b> убивает.</li>
-      <li>Иногда на ленте появляется <b>именной объект</b> (фиолетовый). Тапни его — увидишь историю и выбор.</li>
-      <li><b>Твой выбор сохраняется между уровнями.</b> Спасённые вернутся. Уничтоженные — тоже.</li>
+      <li>Именные объекты (фиолетовые) — тапни, чтобы увидеть историю.</li>
+      <li><b>Выбор сохраняется между уровнями.</b></li>
     </ul>
-    <p style="margin-top:10px;opacity:.6;font-size:11.5px">3 уровня. Прототип.</p>
   </div>
   <button class="btnBig" id="startBtn">Начать смену</button>
 `);
 $('startBtn').addEventListener('click', ()=>{
   hideModal();
-  story.sad_villain = 'rules'; story.robot_kitten = null; story.whisper = null;
+  story.sad_villain = null; story.robot_kitten = null; story.whisper = null;
   state.levelIndex = 0; state.score = 0;
-  startLevel();
+  playIntro(()=> playLevelIntro(()=> startLevel()));
 });
 
 requestAnimationFrame(loop);
