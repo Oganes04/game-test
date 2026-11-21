@@ -101,6 +101,7 @@ export default function GameScreen({
     checkpoint ? structuredClone(checkpoint.shift) : initialShift(),
   )
   const ref = useRef<Shift>(initialState)
+  const trackRef = useRef<HTMLDivElement>(null)
   const serial = useRef(checkpoint?.serial ?? 0)
   const lastSaved = useRef(ref.current.elapsed)
   const [view, setView] = useState<Shift>(ref.current)
@@ -250,6 +251,41 @@ export default function GameScreen({
     })
     onComplete(stars, state.score)
   }
+  function feedRow(x: number) {
+    for (let laneIndex = 0; laneIndex < lanes; laneIndex++) {
+      const id = serial.current++
+      const lane = id % lanes
+      const pool = objects[level === 10 ? 2 : lane]
+      const [icon, name, target] =
+        pool[(Math.floor(id / lanes) + lane * 3) % pool.length]
+      const shadow = level === 8 && id % 6 === 4
+      const hostile =
+        save.story.sad_villain === 'rules' ||
+        save.story.robot_kitten === 'rules'
+      const ghost = (level === 4 || level === 5) && hostile && id % 8 === 6
+      const ally =
+        level === 4 &&
+        (save.story.sad_villain === 'saved' ||
+          ['saved', 'memory'].includes(save.story.robot_kitten)) &&
+        id % 8 === 7
+      const item = {
+        id,
+        lane,
+        x,
+        icon: ghost ? '👻' : icon,
+        name: shadow ? '???' : ghost ? 'Призрак' : name,
+        target,
+        shadow,
+        ghost,
+        void: level >= 5 && id % 3 === 0,
+      }
+      state.items = [...state.items, item]
+      if (ally) {
+        sort(id, target, true)
+        state.flash = 'Союзник помог с сортировкой'
+      }
+    }
+  }
   useGameLoop(!paused && !failed && !scene, (delta) => {
     if (ended.current) return
     if (state.life <= 0 || state.time <= 0 || state.heat >= 100) {
@@ -297,48 +333,36 @@ export default function GameScreen({
     }
     if (state.order && state.elapsed >= state.order.until)
       resolveOrder(!state.order.obeyed)
-    if (state.elapsed >= state.spawn) {
-      const id = serial.current++
-      const lane = id % lanes
-      const pool = objects[level === 10 ? 2 : lane]
-      const [icon, name, target] =
-        pool[(Math.floor(id / lanes) + lane * 3) % pool.length]
-      const shadow = level === 8 && id % 6 === 4
-      const hostile =
-        save.story.sad_villain === 'rules' ||
-        save.story.robot_kitten === 'rules'
-      const ghost = (level === 4 || level === 5) && hostile && id % 8 === 6
-      const ally =
-        level === 4 &&
-        (save.story.sad_villain === 'saved' ||
-          ['saved', 'memory'].includes(save.story.robot_kitten)) &&
-        id % 8 === 7
-      const item = {
-        id,
-        lane,
-        x: 91,
-        icon: ghost ? '👻' : icon,
-        name: shadow ? '???' : ghost ? 'Призрак' : name,
-        target,
-        shadow,
-        ghost,
-        void: level >= 5 && id % 3 === 0,
-      }
-      state.items = [...state.items, item]
-      state.spawn = state.elapsed + 118 / goal
-      if (ally) {
-        sort(id, target, true)
-        state.flash = 'Союзник помог с сортировкой'
-      }
-    }
+    const movement =
+      delta *
+      speed *
+      (active('purr') ? 0.5 : 1) *
+      (state.order?.type === 1 ? 2 : 1)
     for (const item of state.items) {
       if (item.id === dragging || (item.ghost && active('laugh'))) continue
-      item.x -=
-        delta *
-        (8.3 + item.lane * 0.65) *
-        speed *
-        (active('purr') ? 0.5 : 1) *
-        (state.order?.type === 1 ? 2 : 1)
+      item.x -= movement * (8.3 + item.lane * 0.65)
+    }
+
+    const width = trackRef.current?.clientWidth || 320
+    const entrance = 100 - (36 / width) * 100
+    const spacing = (92 / width) * 100
+    if (serial.current === 0) {
+      // Start with several cards in view, with the oldest card closest to the exit.
+      const rows = Math.max(1, Math.floor((entrance - 50) / spacing))
+      for (let row = rows; row >= 0; row--) feedRow(entrance - row * spacing)
+      state.feedTravel = 0
+    } else {
+      state.feedTravel = Math.min(
+        spacing,
+        (state.feedTravel ?? spacing) + movement * 8.3,
+      )
+      const entranceClear = state.items.every(
+        (item) => item.x <= entrance - spacing + 0.01,
+      )
+      if (state.feedTravel >= spacing && entranceClear) {
+        feedRow(entrance)
+        state.feedTravel = 0
+      }
     }
     const expired = state.items.filter((item) => item.x < 4)
     for (const item of expired) {
@@ -540,7 +564,7 @@ export default function GameScreen({
               <div className="belt-tag">
                 ЛИНИЯ {String(lane + 1).padStart(2, '0')}
               </div>
-              <div className="track">
+              <div className="track" ref={lane === 0 ? trackRef : undefined}>
                 {view.items
                   .filter((item) => item.lane === lane)
                   .map((item) => (
@@ -666,14 +690,12 @@ export default function GameScreen({
                     ended.current = false
                     setFailed(false)
                     writeCheckpoint()
-                    useGameStore
-                      .getState()
-                      .update((s) => ({
-                        stats: {
-                          ...s.stats,
-                          totalGames: s.stats.totalGames + 1,
-                        },
-                      }))
+                    useGameStore.getState().update((s) => ({
+                      stats: {
+                        ...s.stats,
+                        totalGames: s.stats.totalGames + 1,
+                      },
+                    }))
                     publish()
                   }
                   setPaused(false)

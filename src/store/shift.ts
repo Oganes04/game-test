@@ -12,7 +12,7 @@ export type Item = {
 export type Shift = {
   time: number
   elapsed: number
-  spawn: number
+  feedTravel?: number
   items: Item[]
   count: number
   score: number
@@ -35,7 +35,7 @@ export type Checkpoint = { level: number; serial: number; shift: Shift }
 export const initialShift = (): Shift => ({
   time: 160,
   elapsed: 0,
-  spawn: 0.6,
+  feedTravel: 0,
   items: [],
   count: 0,
   score: 0,
