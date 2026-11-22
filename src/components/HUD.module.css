@@ -1,0 +1,177 @@
+.hud {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  height: var(--hud-h);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 0;
+  border-radius: var(--radius-md);
+  background: rgba(11, 16, 32, 0.78);
+  border: 1px solid var(--line);
+}
+
+.pause {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  max-height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.level {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.levelNum {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.levelTitle {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-md);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(108, 140, 255, 0.14);
+}
+.progress b {
+  color: #fff;
+}
+.progress span {
+  color: var(--text-muted);
+}
+
+.right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lives {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.heartOn {
+  color: var(--accent-danger);
+  filter: drop-shadow(0 0 4px rgba(255, 93, 115, 0.6));
+}
+.heartOff {
+  color: #3a4266;
+}
+.shield {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+  color: var(--accent-ghost);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  font-size: var(--fs-sm);
+  min-width: 2.5ch;
+  text-align: right;
+}
+
+.coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent-gold);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.meters {
+  display: flex;
+  gap: 10px;
+  padding: 0 4px;
+}
+
+.meter {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+/* ширина через scaleX — анимация только transform */
+.fill {
+  width: 100%;
+  height: 100%;
+  background: var(--c);
+  transform-origin: left center;
+  transform: scaleX(var(--p));
+  transition: transform 0.15s linear;
+  box-shadow: 0 0 8px var(--c);
+}
+.fillDanger {
+  animation: blink 0.6s steps(1) infinite;
+}
+
+.num {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
+}
+
+.danger {
+  color: var(--accent-danger);
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Узкие экраны: прячем название уровня и число монет */
+@media (max-width: 380px) {
+  .levelTitle {
+    display: none;
+  }
+  .coinNum {
+    display: none;
+  }
+  .right {
+    gap: 5px;
+  }
+}

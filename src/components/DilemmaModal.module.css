@@ -1,0 +1,116 @@
+.stage {
+  position: relative;
+  align-self: center;
+  width: 170px;
+  height: 160px;
+  display: grid;
+  place-items: center;
+}
+
+.glow {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.with {
+  position: absolute;
+  right: -34px;
+  bottom: 4px;
+  opacity: 0.85;
+  border-radius: 50%;
+  background: rgba(11, 16, 32, 0.9);
+  border: 1px solid var(--line);
+  padding: 2px;
+}
+
+.head {
+  text-align: center;
+}
+
+.title {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+}
+
+.role {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.line {
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: #d4dcf5;
+  text-wrap: pretty;
+}
+
+.response {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(19, 26, 46, 0.8);
+  border-left: 3px solid var(--accent-purple);
+}
+
+.options {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option {
+  min-height: 52px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  text-align: left;
+  border-radius: var(--radius-md);
+  background: rgba(19, 26, 46, 0.92);
+  border: 1px solid rgba(108, 140, 255, 0.35);
+  transition: transform 0.12s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.option:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.option:disabled {
+  opacity: 0.45;
+}
+
+.chosen,
+.chosen:disabled {
+  opacity: 1;
+  border-color: var(--accent-gold);
+  background: rgba(60, 46, 10, 0.6);
+}
+
+.secret {
+  border-color: rgba(200, 107, 255, 0.8);
+  background: linear-gradient(135deg, rgba(58, 24, 92, 0.9), rgba(19, 26, 46, 0.9));
+  box-shadow: 0 0 16px rgba(200, 107, 255, 0.35);
+}
+
+.optLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: var(--fs-md);
+}
+
+.optHint {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}

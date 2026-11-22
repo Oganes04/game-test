@@ -1,0 +1,215 @@
+.menu {
+  justify-content: space-between;
+  gap: var(--gap-md);
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+}
+
+.hero {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.emblem {
+  position: relative;
+  width: min(80vw, 320px);
+  height: clamp(120px, 26vh, 180px);
+}
+
+.curator {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  opacity: 0.55;
+  filter: drop-shadow(0 0 20px rgba(255, 93, 115, 0.3));
+}
+
+.belt {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12%;
+  height: 22px;
+  border-radius: 11px;
+  background: #0d1326;
+  border: 1px solid rgba(108, 140, 255, 0.45);
+  box-shadow: 0 0 22px rgba(108, 140, 255, 0.25);
+  overflow: hidden;
+}
+
+.beltStripes {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(90deg, rgba(108, 140, 255, 0.35) 0 3px, transparent 3px 24px);
+  background-size: 24px 100%;
+  animation: belt 0.8s linear infinite;
+}
+
+.kitten {
+  position: absolute;
+  left: 18%;
+  bottom: calc(12% + 14px);
+  animation: ride 7s linear infinite;
+}
+
+.boss {
+  position: absolute;
+  right: 4%;
+  top: 8%;
+  opacity: 0.8;
+}
+
+.title {
+  font-size: clamp(34px, 11vw, 52px);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  background: linear-gradient(180deg, #ffffff, #9fb4ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 40px rgba(108, 140, 255, 0.35);
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.bottom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  min-height: 44px;
+}
+
+.secret {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-ghost);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.reset {
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.levels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.act {
+  margin: 10px 0 6px;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.levelBtn {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(19, 26, 46, 0.92);
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.levelBtn:disabled {
+  opacity: 0.4;
+}
+
+.levelNum {
+  flex: 0 0 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(108, 140, 255, 0.15);
+  font-weight: 800;
+  color: var(--accent-primary);
+}
+
+.levelInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.levelInfo small {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.levelStars {
+  display: flex;
+  gap: 1px;
+}
+
+@keyframes belt {
+  to {
+    background-position: -24px 0;
+  }
+}
+@keyframes ride {
+  0% {
+    transform: translateX(220%);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+}
+
+@media (max-height: 640px) {
+  .emblem {
+    height: 110px;
+  }
+  .curator {
+    display: none;
+  }
+}

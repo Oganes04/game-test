@@ -1,0 +1,108 @@
+.bin {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: var(--bin-h);
+  min-height: 64px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  touch-action: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.2s ease;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 0 10px var(--bin-color), 0 1px 2px #000;
+  white-space: nowrap;
+}
+
+.armed {
+  filter: brightness(1.25);
+  animation: armed 1s ease-in-out infinite;
+}
+
+.over {
+  transform: scale(1.05);
+  filter: brightness(1.5) drop-shadow(0 0 10px var(--bin-color));
+}
+
+.locked {
+  filter: grayscale(0.85) brightness(0.6);
+}
+.locked.over,
+.locked.armed {
+  filter: grayscale(0.4) brightness(0.9);
+}
+
+.trap {
+  box-shadow: 0 0 0 2px var(--accent-gold), 0 0 18px rgba(255, 209, 102, 0.5);
+}
+
+.tag {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--accent-gold);
+  color: #241a00;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.hint {
+  filter: brightness(1.5);
+}
+
+.hintRing {
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  border: 2px solid var(--accent-gold);
+  box-shadow: 0 0 18px var(--accent-gold), inset 0 0 18px rgba(255, 209, 102, 0.4);
+  animation: hint 0.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.ok {
+  background: radial-gradient(circle at 50% 30%, rgba(61, 220, 151, 0.85), rgba(61, 220, 151, 0.1) 75%);
+}
+.bad {
+  background: radial-gradient(circle at 50% 30%, rgba(255, 93, 115, 0.9), rgba(255, 93, 115, 0.1) 75%);
+}
+
+@keyframes armed {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes hint {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}

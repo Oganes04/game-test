@@ -1,0 +1,81 @@
+.lane {
+  position: relative;
+  flex: 0 1 var(--lane-h, 200px);
+  min-height: var(--lane-min, 160px);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  isolation: isolate;
+  touch-action: none;
+}
+
+.track {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #0d1326 0%, #121a33 50%, #0d1326 100%);
+  border: 1px solid color-mix(in srgb, var(--lane-color) 35%, transparent);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6), 0 0 22px color-mix(in srgb, var(--lane-color) 15%, transparent);
+}
+
+/* движущиеся полосы ленты */
+.stripes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14%;
+  bottom: 14%;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--lane-color) 16%, transparent) 0 3px,
+    transparent 3px 40px
+  );
+  background-size: 40px 100%;
+  animation: beltMove var(--belt-dur, 0.9s) linear infinite;
+  animation-play-state: var(--belt-state, running);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.rollerTop,
+.rollerBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--lane-color), transparent);
+  opacity: 0.55;
+}
+.rollerTop {
+  top: 12%;
+}
+.rollerBottom {
+  bottom: 12%;
+}
+
+/* затемнение краёв: вход справа, выход слева (опасная зона) */
+.edgeIn,
+.edgeOut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  z-index: 3;
+  pointer-events: none;
+}
+.edgeIn {
+  right: 0;
+  background: linear-gradient(270deg, rgba(7, 10, 20, 0.85), transparent);
+}
+.edgeOut {
+  left: 0;
+  background: linear-gradient(90deg, rgba(255, 93, 115, 0.28), transparent);
+}
+
+@keyframes beltMove {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -40px 0;
+  }
+}

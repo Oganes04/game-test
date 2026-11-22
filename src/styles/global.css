@@ -1,0 +1,196 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: var(--fs-md);
+  line-height: 1.4;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  transition: background-color 1.2s ease;
+}
+
+#root {
+  position: relative;
+  width: var(--app-w);
+  height: var(--app-h);
+  margin: 0 auto;
+  overflow: hidden;
+  z-index: 1;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+img,
+svg {
+  display: block;
+}
+
+h1,
+h2,
+h3,
+p {
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ───────── Фоновые сцены (класс на <body>) ───────── */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 1.2s ease;
+}
+
+/* Ур. 1–2: фабричный цех */
+body.scene-factory {
+  background:
+    radial-gradient(120% 60% at 50% 0%, #16224a 0%, transparent 60%),
+    linear-gradient(180deg, #0b1020 0%, #070a14 100%);
+}
+body.scene-factory::before {
+  background: repeating-linear-gradient(
+    100deg,
+    transparent 0 80px,
+    rgba(108, 140, 255, 0.06) 80px 120px,
+    transparent 120px 220px
+  );
+  animation: lightSweep 14s linear infinite;
+  will-change: transform;
+}
+
+/* Ур. 3–4: тревога, мигающие лампы */
+body.scene-alarm {
+  background:
+    radial-gradient(100% 50% at 50% 0%, #2a1650 0%, transparent 65%),
+    linear-gradient(180deg, #120c24 0%, #070a14 100%);
+}
+body.scene-alarm::before {
+  background: radial-gradient(40% 25% at 20% 8%, rgba(168, 107, 255, 0.35), transparent 70%),
+    radial-gradient(40% 25% at 80% 8%, rgba(168, 107, 255, 0.35), transparent 70%);
+  animation: lampFlicker 4s steps(1) infinite;
+}
+
+/* Ур. 5–6: мрачный, дым */
+body.scene-grim {
+  background:
+    radial-gradient(120% 60% at 50% 100%, #3a0d18 0%, transparent 60%),
+    linear-gradient(180deg, #120709 0%, #070a14 100%);
+}
+body.scene-grim::before {
+  background: radial-gradient(60% 30% at 30% 90%, rgba(139, 26, 42, 0.35), transparent 70%),
+    radial-gradient(50% 25% at 75% 80%, rgba(139, 26, 42, 0.25), transparent 70%);
+  animation: smokeDrift 18s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Ур. 7–8: личное, тёплый туман */
+body.scene-personal {
+  background:
+    radial-gradient(100% 60% at 50% 30%, #2b2a33 0%, transparent 70%),
+    linear-gradient(180deg, #17161c 0%, #0c0b10 100%);
+}
+body.scene-personal::before {
+  background: linear-gradient(180deg, transparent 40%, rgba(200, 190, 180, 0.08) 70%, transparent 100%);
+  animation: smokeDrift 22s ease-in-out infinite alternate;
+}
+
+/* Ур. 9: Пустота */
+body.scene-void {
+  background: #000;
+}
+body.scene-void::before {
+  background: radial-gradient(50% 35% at 50% 50%, rgba(200, 107, 255, 0.06), transparent 70%);
+}
+
+/* Ур. 10: финал, контраст, вспышки */
+body.scene-final {
+  background: linear-gradient(180deg, #050505 0%, #000 100%);
+}
+body.scene-final::before {
+  background: radial-gradient(60% 40% at 50% 40%, rgba(255, 255, 255, 0.14), transparent 70%);
+  opacity: 0;
+  animation: flash 6s ease-in-out infinite;
+}
+
+@keyframes lightSweep {
+  from { transform: translateX(-220px); }
+  to { transform: translateX(0); }
+}
+@keyframes lampFlicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: 0.2; }
+  50% { opacity: 1; }
+  52% { opacity: 0.35; }
+  55% { opacity: 1; }
+}
+@keyframes smokeDrift {
+  from { transform: translate3d(-4%, 0, 0) scale(1); }
+  to { transform: translate3d(4%, -3%, 0) scale(1.08); }
+}
+@keyframes flash {
+  0%, 80%, 100% { opacity: 0; }
+  84% { opacity: 1; }
+  88% { opacity: 0.2; }
+  91% { opacity: 0.8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* Заливки иконок объектов (ObjectIcon) */
+.of {
+  fill: var(--obj-fill, #6c8cff);
+  fill-opacity: 0.55;
+}
+.od {
+  fill: #0b1020;
+  fill-opacity: 0.85;
+}

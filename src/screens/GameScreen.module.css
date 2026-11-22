@@ -1,0 +1,170 @@
+.root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: calc(var(--safe-top) + 6px) calc(var(--safe-right) + 8px) calc(var(--safe-bottom) + 6px)
+    calc(var(--safe-left) + 8px);
+  overflow: hidden;
+}
+
+/* Поле с лентами: занимает всё место между HUD и контейнерами */
+.field {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.lanes {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.corner {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  z-index: 1;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.combo {
+  position: absolute;
+  top: 10px;
+  left: 6px;
+  z-index: 6;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(60, 46, 10, 0.85);
+  border: 1px solid rgba(255, 209, 102, 0.6);
+  color: var(--accent-gold);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  box-shadow: var(--glow-gold);
+  pointer-events: none;
+}
+
+.darkness {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.88), #000 70%);
+  pointer-events: none;
+  transition: opacity 0.3s linear;
+  z-index: 4;
+  border-radius: var(--radius-lg);
+}
+
+.blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.94);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+}
+.blackout span {
+  color: var(--accent-gold);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.ghostFly {
+  position: absolute;
+  top: 30%;
+  left: 0;
+  right: 0;
+  z-index: 8;
+  pointer-events: none;
+  display: flex;
+}
+
+.centerFx {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 46%;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.floater {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  background: rgba(11, 16, 32, 0.9);
+  border: 1px solid var(--line);
+  pointer-events: none;
+}
+.good {
+  color: var(--accent-success);
+  border-color: rgba(61, 220, 151, 0.5);
+}
+.bad {
+  color: var(--accent-danger);
+  border-color: rgba(255, 93, 115, 0.5);
+}
+.gold {
+  color: var(--accent-gold);
+  border-color: rgba(255, 209, 102, 0.6);
+}
+.ghost {
+  color: var(--accent-ghost);
+  border-color: rgba(200, 107, 255, 0.5);
+}
+.info {
+  color: var(--accent-primary);
+}
+
+/* Контейнеры: 3 в ряд, gap 8px */
+.bins {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+.binFx {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.binFx .floater {
+  position: absolute;
+  bottom: 0;
+}
+
+.ally {
+  position: absolute;
+  left: 50%;
+  bottom: -40px;
+  margin-left: -30px;
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: inset 0 0 80px 10px rgba(255, 93, 115, 0.7);
+}

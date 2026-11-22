@@ -1,0 +1,65 @@
+:root {
+  /* Палитра */
+  --bg-0: #070a14;
+  --bg-1: #0b1020;
+  --bg-2: #131a2e;
+  --bg-3: #1b2440;
+  --accent-primary: #6c8cff;
+  --accent-purple: #a86bff;
+  --accent-gold: #ffd166;
+  --accent-danger: #ff5d73;
+  --accent-success: #3ddc97;
+  --accent-ghost: #c86bff;
+  --text-primary: #e8eeff;
+  --text-muted: #8a95b8;
+  --line: rgba(140, 160, 255, 0.14);
+
+  /* Формы */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glow-primary: 0 0 18px rgba(108, 140, 255, 0.45);
+  --glow-gold: 0 0 18px rgba(255, 209, 102, 0.45);
+
+  /* Типографика */
+  --font-main: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fs-xs: clamp(10px, 2.8vw, 12px);
+  --fs-sm: clamp(12px, 3.3vw, 14px);
+  --fs-md: clamp(14px, 3.9vw, 16px);
+  --fs-lg: clamp(18px, 5.2vw, 22px);
+  --fs-xl: clamp(26px, 8vw, 38px);
+
+  /* Отступы */
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: clamp(12px, 3.5vw, 16px);
+  --gap-lg: clamp(16px, 5vw, 24px);
+
+  /* Безопасные зоны */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Игровая раскладка */
+  --hud-h: 44px;
+  --bin-h: 72px;
+  --tool-btn: 48px;
+  --app-w: min(100vw, 600px);
+  --app-h: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-h: 100dvh;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    --hud-h: 40px;
+    --bin-h: 66px;
+    --tool-btn: 44px;
+  }
+}

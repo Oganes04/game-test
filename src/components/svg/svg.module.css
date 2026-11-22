@@ -1,0 +1,112 @@
+/* Анимации персонажей — только transform/opacity */
+
+.root {
+  overflow: visible;
+}
+
+.cloak {
+  transform-origin: 50px 10px;
+  transform-box: view-box;
+  animation: cloakSway 3.6s ease-in-out infinite;
+}
+
+.dimEyes {
+  animation: dim 4s ease-in-out infinite;
+}
+
+.pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.blink {
+  animation: blink 1.2s steps(1) infinite;
+}
+
+.flicker {
+  animation: flicker 3s linear infinite;
+}
+
+.sway {
+  transform-origin: 50px 95px;
+  transform-box: view-box;
+  animation: sway 4s ease-in-out infinite;
+}
+
+.breathe {
+  transform-origin: 50px 98px;
+  transform-box: view-box;
+  animation: breathe 5s ease-in-out infinite;
+}
+
+.fogA {
+  animation: fogA 7s ease-in-out infinite alternate;
+}
+
+.fogB {
+  animation: fogB 9s ease-in-out infinite alternate;
+}
+
+.tailWag {
+  transform-origin: 68px 70px;
+  transform-box: view-box;
+  animation: tail 2.2s ease-in-out infinite;
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.glowSoft {
+  animation: dim 2.6s ease-in-out infinite;
+}
+
+@keyframes cloakSway {
+  0%, 100% { transform: skewX(0deg); }
+  50% { transform: skewX(-3deg); }
+}
+@keyframes dim {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.82); opacity: 0.7; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+@keyframes flicker {
+  0%, 100% { opacity: 0.72; }
+  8% { opacity: 0.35; }
+  10% { opacity: 0.75; }
+  45% { opacity: 0.6; }
+  47% { opacity: 0.25; }
+  49% { opacity: 0.7; }
+}
+@keyframes sway {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.015, 1.035); }
+}
+@keyframes fogA {
+  from { transform: translate(-8px, 4px); }
+  to { transform: translate(8px, -6px); }
+}
+@keyframes fogB {
+  from { transform: translate(6px, -4px); }
+  to { transform: translate(-6px, 8px); }
+}
+@keyframes tail {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(12deg); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}

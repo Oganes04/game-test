@@ -1,0 +1,48 @@
+.hero {
+  align-self: center;
+  filter: drop-shadow(0 0 20px rgba(200, 107, 255, 0.35));
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.line {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.45;
+}
+
+.narration p {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.speech {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(19, 26, 46, 0.8);
+  border: 1px solid var(--line);
+}
+
+.avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #0b1020;
+  border: 1.5px solid;
+  overflow: hidden;
+}
+
+.who {
+  font-size: var(--fs-xs);
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

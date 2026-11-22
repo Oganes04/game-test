@@ -1,0 +1,87 @@
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+}
+.dot {
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background-color 0.3s ease;
+}
+.dotOn {
+  background: var(--accent-primary);
+  box-shadow: var(--glow-primary);
+}
+
+.skip {
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: var(--gap-lg) var(--gap-md);
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.art {
+  height: 170px;
+  display: grid;
+  place-items: center;
+  color: var(--accent-primary);
+  filter: drop-shadow(0 0 24px rgba(108, 140, 255, 0.35));
+}
+
+.num {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+}
+
+.title {
+  font-size: var(--fs-xl);
+  font-weight: 850;
+}
+
+.text {
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: #cdd6f4;
+  max-width: 34ch;
+}
+
+.nav {
+  display: flex;
+  gap: 10px;
+}
+
+.back {
+  width: 52px;
+  padding: 0;
+}

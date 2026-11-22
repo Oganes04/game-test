@@ -1,0 +1,114 @@
+/* Общие UI-примитивы: экраны, кнопки, кнопка закрытия */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-top) + var(--gap-md)) calc(var(--safe-right) + var(--gap-md))
+    calc(var(--safe-bottom) + var(--gap-md)) calc(var(--safe-left) + var(--gap-md));
+  overflow: hidden;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  font-weight: 650;
+  font-size: var(--fs-md);
+  letter-spacing: 0.01em;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text-primary);
+  transition: transform 0.12s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+}
+
+.primary {
+  background: linear-gradient(135deg, #6c8cff, #8a6bff);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(108, 140, 255, 0.35);
+}
+
+.gold {
+  background: linear-gradient(135deg, #ffd166, #ffb347);
+  border-color: transparent;
+  color: #241a00;
+  box-shadow: var(--glow-gold);
+}
+
+.danger {
+  color: var(--accent-danger);
+  border-color: rgba(255, 93, 115, 0.35);
+}
+
+.ghost {
+  background: transparent;
+}
+
+.block {
+  width: 100%;
+}
+
+.closeBtn {
+  position: absolute;
+  top: calc(var(--safe-top) + 8px);
+  right: calc(var(--safe-right) + 8px);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(19, 26, 46, 0.8);
+  border: 1px solid var(--line);
+  color: var(--text-primary);
+  z-index: 5;
+}
+
+.closeBtn:active {
+  transform: scale(0.94);
+}
+
+.title {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(19, 26, 46, 0.8);
+  border: 1px solid var(--line);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}

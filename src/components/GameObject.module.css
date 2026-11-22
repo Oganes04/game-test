@@ -1,0 +1,148 @@
+.slot {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--obj-w, 72px);
+  height: var(--obj-h, 80px);
+  will-change: transform;
+  transform: translate3d(9999px, -50%, 0);
+  z-index: 2;
+}
+
+.ghosted {
+  opacity: 0.25;
+}
+
+.hit {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+  -webkit-user-drag: none;
+}
+
+.card {
+  position: relative;
+  width: var(--obj-w, 72px);
+  height: var(--obj-h, 80px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(27, 36, 64, 0.95), rgba(11, 16, 32, 0.95));
+  border: 1px solid color-mix(in srgb, var(--obj-fill, #6c8cff) 45%, transparent);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: #e8eeff;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.icon {
+  color: #e8eeff;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--obj-fill, #6c8cff) 60%, transparent));
+}
+
+.icon svg {
+  width: calc(var(--obj-w, 72px) * 0.55);
+  height: calc(var(--obj-w, 72px) * 0.55);
+}
+
+.label {
+  max-width: 92%;
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1.1;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selected {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px var(--accent-gold), 0 0 22px rgba(255, 209, 102, 0.55);
+  transform: translateY(-3px);
+}
+
+.lifted {
+  transform: scale(1.12) rotate(-3deg);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6), 0 0 24px color-mix(in srgb, var(--obj-fill, #6c8cff) 60%, transparent);
+  cursor: grabbing;
+}
+
+/* объект «из Пустоты» */
+.void {
+  border-color: rgba(200, 107, 255, 0.8);
+  background: linear-gradient(180deg, rgba(58, 24, 92, 0.95), rgba(16, 8, 30, 0.95));
+}
+.void::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  box-shadow: 0 0 14px rgba(200, 107, 255, 0.6);
+  opacity: 0.6;
+  animation: voidPulse 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* тень-двойник */
+.shadow {
+  background: radial-gradient(circle at 50% 40%, #1d1530, #05040a);
+  border: 1px dashed rgba(168, 107, 255, 0.5);
+  color: #a86bff;
+}
+.shadow .label {
+  color: #a86bff;
+  letter-spacing: 0.2em;
+}
+
+/* вопрос */
+.question {
+  background: radial-gradient(circle at 50% 40%, #2a1650, #0b0618);
+  border-color: rgba(168, 107, 255, 0.7);
+}
+
+.shake {
+  animation: shake 0.35s ease;
+}
+
+/* персонаж на ленте */
+.character {
+  width: calc(var(--obj-w, 72px) * 1.15);
+  height: calc(var(--obj-h, 80px) * 1.1);
+  margin-left: calc(var(--obj-w, 72px) * -0.075);
+  margin-top: calc(var(--obj-h, 80px) * -0.05);
+  background: radial-gradient(circle at 50% 45%, rgba(255, 209, 102, 0.18), rgba(11, 16, 32, 0.6) 70%);
+  border: 1px solid rgba(255, 209, 102, 0.6);
+  box-shadow: 0 0 24px rgba(255, 209, 102, 0.35);
+  animation: charGlow 1.4s ease-in-out infinite;
+  justify-content: flex-end;
+  padding-bottom: 2px;
+  overflow: hidden;
+}
+.character svg {
+  width: 82%;
+  height: auto;
+}
+.charName {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  white-space: nowrap;
+}
+
+@keyframes voidPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@keyframes charGlow {
+  0%, 100% { box-shadow: 0 0 14px rgba(255, 209, 102, 0.25); }
+  50% { box-shadow: 0 0 28px rgba(255, 209, 102, 0.6); }
+}

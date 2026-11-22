@@ -1,724 +1,574 @@
-import { useEffect, useRef, useState } from 'react'
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useDraggable,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import { motion } from 'framer-motion'
-import { levels, bins, objects } from '../data/levels'
-import { applyChoice, scenes } from '../data/characters'
-import { award, orders, tools } from '../data/extras'
-import { useGameStore } from '../store/gameStore'
-import useGameLoop from '../hooks/useGameLoop'
-import Portrait from '../components/Portrait'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { DndContext, DragOverlay } from '@dnd-kit/core';
+import { AnimatePresence, motion } from 'framer-motion';
 
-import { initialShift, type Item, type Shift } from '../store/shift'
+import { getLevel } from '../data/levels';
+import { getBeat, getDilemma, ghostsAndAllies, resolveDilemma } from '../data/dilemmas';
+import type { Beat, Dilemma } from '../data/dilemmas';
+import { resolveEnding } from '../data/finales';
+import { SHOP_TOOLS, TOOLS, storyTools } from '../data/tools';
+import type { EndingId, LevelEvent, ToolId } from '../data/types';
 
-function ObjectCard({
-  item,
-  selected,
-  glowing,
-  question,
-  select,
-}: {
-  item: Item
-  selected: boolean
-  glowing: boolean
-  question: boolean
-  select: () => void
-}) {
-  const drag = useDraggable({ id: item.id })
-  return (
-    <button
-      ref={drag.setNodeRef}
-      {...drag.listeners}
-      {...drag.attributes}
-      onClick={select}
-      aria-pressed={selected}
-      className={`object ${selected ? 'selected' : ''} ${item.shadow ? 'shadow-item' : ''} ${item.ghost ? 'ghost-item' : ''} ${glowing ? 'glowing' : ''} ${question ? 'question-item' : ''}`}
-      style={{
-        left: `calc(${item.x}% - 36px)`,
-        opacity: drag.isDragging ? 0.25 : undefined,
-      }}
-    >
-      <span>{item.icon}</span>
-      <small>{item.name}</small>
-    </button>
-  )
+import { useGameLoop } from '../hooks/useGameLoop';
+import type { EngineObj, EngineResult, Fx } from '../hooks/useGameLoop';
+import { useDragObject } from '../hooks/useDragObject';
+import { useBossOrders } from '../hooks/useBossOrders';
+import { checkAchievements, useGameStore } from '../store/gameStore';
+import { useUiStore } from '../store/uiStore';
+
+import { HUD } from '../components/HUD';
+import { ConveyorBelt } from '../components/ConveyorBelt';
+import { ObjectCard } from '../components/GameObject';
+import { Bin } from '../components/Bin';
+import type { BinFlash } from '../components/Bin';
+import { ToolBar } from '../components/ToolBar';
+import type { ToolSlot } from '../components/ToolBar';
+import { BossOrderBar } from '../components/BossOrderBar';
+import { DilemmaModal } from '../components/DilemmaModal';
+import { CharacterModal } from '../components/CharacterModal';
+import { Modal } from '../components/Modal';
+import { Icon } from '../components/svg/Icons';
+import { AllySVG, CuratorSVG, GhostSVG, WhisperSVG } from '../components/svg/Characters';
+import ui from '../styles/ui.module.css';
+import s from './GameScreen.module.css';
+
+type ModalState =
+  | { type: 'dilemma'; ev: LevelEvent; dilemma: Dilemma }
+  | { type: 'beat'; ev: LevelEvent; beat: Beat }
+  | { type: 'pause' }
+  | null;
+
+interface Floater {
+  id: number;
+  text: string;
+  tone: 'good' | 'bad' | 'gold' | 'ghost' | 'info';
+  /** 0..2 — над контейнером, -1 — по центру ленты */
+  at: number;
 }
-function Bin({
-  index,
-  active,
-  hint,
-  lanes,
-  free,
-  sort,
-}: {
-  index: number
-  active: boolean
-  hint: boolean
-  lanes: number
-  free: boolean
-  sort: () => void
-}) {
-  const drop = useDroppable({ id: `bin-${index}` })
-  return (
-    <button
-      className={`bin bin-${index} ${active || drop.isOver ? 'ready' : ''} ${hint ? 'hint' : ''}`}
-      ref={drop.setNodeRef}
-      onClick={sort}
-    >
-      <span className="bin-icon">{['◇', '⚙', '△'][index]}</span>
-      <div>
-        {bins.slice(0, free ? 1 : lanes).map((labels, i) => (
-          <span className={`bin-label lane-${i}`} key={i}>
-            {free ? bins[2][index] : labels[index]}
-          </span>
-        ))}
-      </div>
-      <kbd>{index + 1}</kbd>
-    </button>
-  )
-}
-export default function GameScreen({
-  level,
-  onExit,
-  onComplete,
-}: {
-  level: number
-  onExit: () => void
-  onComplete: (stars: number, score: number) => void
-}) {
-  const [title, speed, lanes, goal] = levels[level - 1]
-  const save = useGameStore()
-  const checkpoint =
-    save.checkpoint?.level === level ? save.checkpoint : undefined
-  const [initialState] = useState(() =>
-    checkpoint ? structuredClone(checkpoint.shift) : initialShift(),
-  )
-  const ref = useRef<Shift>(initialState)
-  const trackRef = useRef<HTMLDivElement>(null)
-  const serial = useRef(checkpoint?.serial ?? 0)
-  const lastSaved = useRef(ref.current.elapsed)
-  const [view, setView] = useState<Shift>(ref.current)
-  const [selected, setSelected] = useState<number>()
-  const [dragging, setDragging] = useState<number>()
-  const [paused, setPaused] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const ended = useRef(false)
-  const publish = () => setView({ ...ref.current })
-  const state = ref.current
-  function writeCheckpoint() {
-    if (ended.current) return
-    lastSaved.current = state.elapsed
-    useGameStore.getState().update(() => ({
-      checkpoint: {
-        level,
-        serial: serial.current,
-        shift: structuredClone(state),
-      },
-    }))
-  }
-  useEffect(() => {
-    window.addEventListener('pagehide', writeCheckpoint)
-    return () => window.removeEventListener('pagehide', writeCheckpoint)
-  }, [level])
-  const dialogues = scenes(level, save.story)
-  const scene = dialogues.find((item) => item.id === view.pending)
-  const active = (id: string) => state.effects[id] > state.elapsed
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 7 } }),
-  )
-  function damage(incorrect: boolean) {
-    if (state.shield) state.shield--
-    else state.life--
-    state.combo = 0
-    if (level === 9) {
-      state.light = Math.max(0, state.light - 12)
-      state.clean = false
-    }
-    if (incorrect) {
-      state.time -= 3
-      state.heat = Math.min(100, state.heat + 12)
-    }
-    state.flash = incorrect ? 'Ошибка сортировки' : 'Объект ушёл за край'
-  }
-  function sort(id: number | undefined, bin: number, automatic = false) {
-    const item = state.items.find((entry) => entry.id === id)
-    if (!item || state.pending || ended.current || paused) return
-    if (!automatic && state.order?.type === 0 && bin !== 0) {
-      state.flash = 'Заблокировано приказом. Можно саботировать приказ.'
-      publish()
-      return
-    }
-    state.items = state.items.filter((entry) => entry !== item)
-    setSelected(undefined)
-    const forced = !automatic && state.order?.type === 3 && bin === 1
-    if (
-      state.order &&
-      !automatic &&
-      (state.order.type === 0 || state.order.type === 3)
-    ) {
-      state.order.obeyed ||= state.order.type === 0 ? bin === 0 : bin === 1
-    }
-    if (
-      (item.shadow && !active('doubt')) ||
-      ((level !== 10 || active('doubt')) && bin !== item.target)
-    )
-      damage(true)
-    else {
-      state.count++
-      state.combo++
-      state.peak = Math.max(state.peak, state.combo)
-      state.score +=
-        10 *
-        Math.min(state.combo, 5) *
-        (active('double') ? 2 : 1) *
-        (active('voice') && item.void ? 3 : 1)
-      state.time += 0.5
-      state.heat = Math.max(0, state.heat - 4)
-      if (level === 9) state.light = Math.min(100, state.light + 5)
-      state.flash = forced
-        ? 'Приказ выполнен'
-        : state.combo > 1
-          ? `Серия ×${Math.min(state.combo, 5)}`
-          : 'Верно'
-    }
-    writeCheckpoint()
-    publish()
-  }
-  function resolveOrder(sabotaged: boolean) {
-    if (!state.order) return
-    state.order = undefined
-    lastSaved.current = state.elapsed
-    useGameStore.getState().update((s) => {
-      const next = {
-        ...s,
-        checkpoint: {
-          level,
-          serial: serial.current,
-          shift: structuredClone(state),
-        },
-        coins: s.coins + (sabotaged ? 0 : 5),
-        stats: {
-          ...s.stats,
-          [sabotaged ? 'sabotagedOrders' : 'totalOrders']:
-            (sabotaged ? s.stats.sabotagedOrders : s.stats.totalOrders) + 1,
-        },
-        story: {
-          ...s.story,
-          [sabotaged ? 'whisperTrust' : 'bossTrust']: String(
-            Number(s.story[sabotaged ? 'whisperTrust' : 'bossTrust'] || 0) + 5,
-          ),
-        },
-      }
-      return { ...next, ...award(next) }
-    })
-  }
-  function finish() {
-    ended.current = true
-    if (state.order) resolveOrder(!state.order.obeyed)
-    const stars =
-      state.life === 3 && state.peak >= 5 ? 3 : state.life >= 2 ? 2 : 1
-    useGameStore.getState().update((s) => {
-      const old = s.levelProgress[level]
-      const finale = level === 10 ? s.story.finale : undefined
-      const fresh = !!finale && !s.endings.includes(finale)
-      const next = {
-        ...s,
-        checkpoint: undefined,
-        level: Math.min(10, Math.max(s.level, level + 1)),
-        coins: s.coins + 20 + stars * 10 + (fresh ? 100 : 0),
-        story:
-          level === 9 && state.clean
-            ? { ...s.story, cleanLight: 'yes' }
-            : s.story,
-        levelProgress: {
-          ...s.levelProgress,
-          [level]: {
-            stars: Math.max(stars, old?.stars || 0),
-            bestScore: Math.max(state.score, old?.bestScore || 0),
-            completed: true as const,
-          },
-        },
-        endings: fresh ? [...s.endings, finale!] : s.endings,
-      }
-      return { ...next, ...award(next) }
-    })
-    onComplete(stars, state.score)
-  }
-  function feedRow(x: number) {
-    for (let laneIndex = 0; laneIndex < lanes; laneIndex++) {
-      const id = serial.current++
-      const lane = id % lanes
-      const pool = objects[level === 10 ? 2 : lane]
-      const [icon, name, target] =
-        pool[(Math.floor(id / lanes) + lane * 3) % pool.length]
-      const shadow = level === 8 && id % 6 === 4
-      const hostile =
-        save.story.sad_villain === 'rules' ||
-        save.story.robot_kitten === 'rules'
-      const ghost = (level === 4 || level === 5) && hostile && id % 8 === 6
-      const ally =
-        level === 4 &&
-        (save.story.sad_villain === 'saved' ||
-          ['saved', 'memory'].includes(save.story.robot_kitten)) &&
-        id % 8 === 7
-      const item = {
-        id,
-        lane,
-        x,
-        icon: ghost ? '👻' : icon,
-        name: shadow ? '???' : ghost ? 'Призрак' : name,
-        target,
-        shadow,
-        ghost,
-        void: level >= 5 && id % 3 === 0,
-      }
-      state.items = [...state.items, item]
-      if (ally) {
-        sort(id, target, true)
-        state.flash = 'Союзник помог с сортировкой'
-      }
-    }
-  }
-  useGameLoop(!paused && !failed && !scene, (delta) => {
-    if (ended.current) return
-    if (state.life <= 0 || state.time <= 0 || state.heat >= 100) {
-      ended.current = true
-      useGameStore.getState().update(() => ({ checkpoint: undefined }))
-      setFailed(true)
-      return
-    }
-    const next = dialogues.find((entry) => !state.done.includes(entry.id))
-    const threshold = [3, 9, 10].includes(level)
-      ? goal
-      : level === 1
-        ? 5
-        : level === 7 && state.done.length
-          ? 25
-          : level === 6
-            ? 3
-            : 8
-    if (next && state.count >= threshold) {
-      state.pending = next.id
-      writeCheckpoint()
-      publish()
-      return
-    }
-    if (state.count >= goal) {
-      finish()
-      return
-    }
-    state.elapsed += delta
-    state.time -= delta
-    const times =
-      level === 3 ? [12] : level === 6 ? [12, 42] : level > 3 ? [20] : []
-    if (
-      !state.order &&
-      state.orderIndex < times.length &&
-      state.elapsed >= times[state.orderIndex]
-    ) {
-      state.orderIndex++
-      const type = Math.floor(Math.random() * orders.length)
-      state.order = {
-        type,
-        until: state.elapsed + orders[type][1],
-        obeyed: type !== 0 && type !== 3,
-      }
-    }
-    if (state.order && state.elapsed >= state.order.until)
-      resolveOrder(!state.order.obeyed)
-    const movement =
-      delta *
-      speed *
-      (active('purr') ? 0.5 : 1) *
-      (state.order?.type === 1 ? 2 : 1)
-    for (const item of state.items) {
-      if (item.id === dragging || (item.ghost && active('laugh'))) continue
-      item.x -= movement * (8.3 + item.lane * 0.65)
-    }
 
-    const width = trackRef.current?.clientWidth || 320
-    const entrance = 100 - (36 / width) * 100
-    const spacing = (92 / width) * 100
-    if (serial.current === 0) {
-      // Start with several cards in view, with the oldest card closest to the exit.
-      const rows = Math.max(1, Math.floor((entrance - 50) / spacing))
-      for (let row = rows; row >= 0; row--) feedRow(entrance - row * spacing)
-      state.feedTravel = 0
-    } else {
-      state.feedTravel = Math.min(
-        spacing,
-        (state.feedTravel ?? spacing) + movement * 8.3,
-      )
-      const entranceClear = state.items.every(
-        (item) => item.x <= entrance - spacing + 0.01,
-      )
-      if (state.feedTravel >= spacing && entranceClear) {
-        feedRow(entrance)
-        state.feedTravel = 0
-      }
-    }
-    const expired = state.items.filter((item) => item.x < 4)
-    for (const item of expired) {
-      if (item.ghost) {
-        state.time -= 5
-        state.flash = 'Призрак забрал 5 секунд'
-      } else if (!item.shadow) damage(false)
-      if (item.id === selected) setSelected(undefined)
-    }
-    if (expired.length) state.items = state.items.filter((item) => item.x >= 4)
-    if (state.elapsed - lastSaved.current >= 1) writeCheckpoint()
-    publish()
-  })
-  function choose(id: string, value: string) {
-    state.done.push(id)
-    state.pending = undefined
-    lastSaved.current = state.elapsed
-    useGameStore.getState().update((s) => {
-      const story = applyChoice(s.story, id, value)
-      const unlocked = new Set(s.unlockedTools)
-      if (id === 'robot_kitten' && (value === 'saved' || value === 'memory'))
-        unlocked.add('purr')
-      if (id === 'whisperSaved' && value === 'saved') unlocked.add('voice')
-      if (id === 'misha' && value !== 'rules') unlocked.add('laugh')
-      if (id === 'shadow' && value === 'freed') unlocked.add('doubt')
-      const next = {
-        ...s,
-        story,
-        unlockedTools: [...unlocked],
-        checkpoint: {
-          level,
-          serial: serial.current,
-          shift: structuredClone(state),
-        },
-      }
-      return { ...next, ...award(next) }
-    })
-    publish()
-  }
-  function useTool(id: string, cooldown: number) {
-    if (
-      state.pending ||
-      paused ||
-      failed ||
-      state.order?.type === 2 ||
-      (state.cooldowns[id] || 0) > state.elapsed
-    )
-      return
-    const item = state.items.find((item) => item.id === selected)
-    if (id === 'eye' && !item) return
-    if (id === 'lasso') {
-      const nearest = state.items.reduce<Item | undefined>(
-        (best, item) => (!best || item.x < best.x ? item : best),
-        undefined,
-      )
-      if (!nearest) return
-      nearest.x = 79
-      useGameStore.getState().update((s) => {
-        const next = {
-          ...s,
-          stats: { ...s.stats, lassoUsed: s.stats.lassoUsed + 1 },
+/** Раскладка по числу линий: высота ленты и размер объектов. */
+const LAYOUT: Record<number, { laneH: number; laneMin: number; objW: number; objH: number }> = {
+  1: { laneH: 280, laneMin: 160, objW: 72, objH: 80 },
+  2: { laneH: 170, laneMin: 112, objW: 70, objH: 78 },
+  3: { laneH: 124, laneMin: 84, objW: 60, objH: 68 },
+};
+
+let floaterId = 1;
+
+export function GameScreen() {
+  const levelId = useUiStore((st) => st.levelId);
+  const go = useUiStore((st) => st.go);
+  const level = useMemo(() => getLevel(levelId), [levelId]);
+  const story = useGameStore((st) => st.story);
+  const coins = useGameStore((st) => st.coins);
+  const purchased = useGameStore((st) => st.purchasedTools);
+
+  // Призраки/союзники и флаги — снимок на момент начала смены
+  const [init] = useState(() => {
+    const st = useGameStore.getState().story;
+    return { story: st, ...ghostsAndAllies(st) };
+  });
+
+  const [modal, setModal] = useState<ModalState>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [flashes, setFlashes] = useState<(BinFlash | null)[]>([null, null, null]);
+  const [floaters, setFloaters] = useState<Floater[]>([]);
+  const [shakeId, setShakeId] = useState<number | null>(null);
+  const [vignette, setVignette] = useState(0);
+  const [allyKey, setAllyKey] = useState(0);
+  const outcomeLog = useRef<string>('');
+  const endingRef = useRef<EndingId | null>(null);
+  const finalAnswer = useRef<string>('');
+
+  /* ── эффекты (fx) ── */
+
+  const float = useCallback((text: string, tone: Floater['tone'], at: number) => {
+    const id = floaterId++;
+    setFloaters((f) => [...f.slice(-5), { id, text, tone, at }]);
+    setTimeout(() => setFloaters((f) => f.filter((x) => x.id !== id)), 950);
+  }, []);
+
+  const flashBin = useCallback((bin: number, ok: boolean) => {
+    setFlashes((f) => f.map((x, i) => (i === bin ? { ok, key: Date.now() + Math.random() } : x)));
+  }, []);
+
+  const hurt = useCallback(() => {
+    setVignette((v) => v + 1);
+    navigator.vibrate?.(40);
+  }, []);
+
+  const onFx = (fx: Fx) => {
+    switch (fx.type) {
+      case 'correct':
+        flashBin(fx.bin, true);
+        if (fx.source === 'ally') {
+          float('Союзник помог', 'good', fx.bin);
+          setAllyKey((k) => k + 1);
+        } else {
+          const m = fx.combo >= 2 ? ` ×${Math.min(5, fx.combo)}` : '';
+          float(`+${fx.pts}${m}`, fx.combo >= 5 ? 'gold' : 'good', fx.bin);
         }
-        return { ...next, ...award(next) }
-      })
+        break;
+      case 'wrong':
+        flashBin(fx.bin, false);
+        float(fx.shielded ? 'Щит! −3с' : 'Ошибка −1 −3с', 'bad', fx.bin);
+        if (!fx.shielded) hurt();
+        break;
+      case 'escape':
+        if (fx.free) float('Начальник прикрыл', 'gold', -1);
+        else {
+          float(fx.shielded ? 'Упущено — щит' : 'Упущено −1', 'bad', -1);
+          if (!fx.shielded) hurt();
+        }
+        break;
+      case 'ghost':
+        float(fx.frozen ? 'Призрак заморожен' : 'Призрак крадёт −2с', fx.frozen ? 'info' : 'ghost', -1);
+        break;
+      case 'boss':
+        flashBin(fx.bin, true);
+        float('+5 Начальнику', 'gold', fx.bin);
+        break;
+      case 'shadowHit':
+        flashBin(fx.bin, false);
+        float(fx.shielded ? 'Тень! Щит' : 'Тень! −1', 'ghost', fx.bin);
+        if (!fx.shielded) hurt();
+        break;
+      case 'reject':
+        setShakeId(fx.id);
+        setTimeout(() => setShakeId(null), 380);
+        float('Нужно «Сомнение»', 'ghost', -1);
+        break;
+      case 'orderStart':
+        navigator.vibrate?.([20, 40, 20]);
+        break;
+      case 'orderEnd':
+        float(fx.complied ? 'Приказ выполнен +5' : 'Саботаж: Шёпот +5', fx.complied ? 'gold' : 'ghost', -1);
+        break;
+      case 'sabotage':
+        float('Саботаж!', 'ghost', -1);
+        break;
+      case 'tool':
+        float(TOOLS[fx.tool].name, 'info', -1);
+        break;
     }
-    if (
-      id === 'magnet' &&
-      !state.items.some((obj) => !obj.ghost && (!obj.shadow || active('doubt')))
-    )
-      return
-    if (id === 'magnet')
-      for (const obj of [...state.items])
-        if (!obj.ghost && (!obj.shadow || active('doubt')))
-          sort(obj.id, obj.target, true)
-    if (id === 'time') state.time += 15
-    if (id === 'shield') state.shield = 3
-    const duration: Record<string, number> = {
-      purr: 5,
-      voice: 10,
-      laugh: 5,
-      doubt: 8,
-      eye: 5,
-      double: 1000000,
+  };
+
+  /* ── сюжетные события ── */
+
+  const onEvent = (ev: LevelEvent) => {
+    setSelectedId(null);
+    const st = useGameStore.getState().story;
+    if (ev.kind === 'dilemma') {
+      const d = getDilemma(ev.id, st);
+      if (d) return setModal({ type: 'dilemma', ev, dilemma: d });
+    } else {
+      const b = getBeat(ev.id, { ghosts: init.ghosts, allies: init.allies });
+      if (b) {
+        outcomeLog.current = resolveDilemma(ev.id, '').log;
+        return setModal({ type: 'beat', ev, beat: b });
+      }
     }
-    if (id in duration) state.effects[id] = state.elapsed + duration[id]
-    state.cooldowns[id] = state.elapsed + cooldown
-    if (cooldown) writeCheckpoint()
-    else {
-      lastSaved.current = state.elapsed
-      useGameStore.getState().update((s) => ({
-        purchasedTools: s.purchasedTools.filter((tool) => tool !== id),
-        checkpoint: {
-          level,
-          serial: serial.current,
-          shift: structuredClone(state),
-        },
-      }))
+    engineRef.current?.resolveEvent(ev.id);
+  };
+
+  const onEnd = (r: EngineResult) => {
+    const store = useGameStore.getState();
+    const stars = (!r.win ? 0 : r.lives === 3 && r.maxCombo >= 5 ? 3 : r.lives >= 2 ? 2 : 1) as 0 | 1 | 2 | 3;
+    const coinsEarned = r.win ? 20 + stars * 10 + r.orderCoins : r.orderCoins;
+    store.addStats({
+      totalGames: 1,
+      totalOrders: r.ordersDone,
+      sabotagedOrders: r.ordersSabotaged,
+      lassoUsed: r.lassoUsed,
+      totalSorted: r.sorted,
+    });
+    if (r.win && stars > 0) store.completeLevel(level.id, stars as 1 | 2 | 3, r.score, coinsEarned);
+    else store.addCoins(coinsEarned);
+    const ending = endingRef.current;
+    if (ending) store.addEnding(ending);
+    checkAchievements({
+      levelId: level.id, win: r.win, maxCombo: r.maxCombo, stars, lives: r.lives, ordersSabotaged: r.ordersSabotaged,
+    });
+    const uiS = useUiStore.getState();
+    uiS.setResult({
+      levelId: level.id,
+      win: r.win,
+      reason: r.reason,
+      score: r.score,
+      stars,
+      lives: r.lives,
+      maxCombo: r.maxCombo,
+      coins: coinsEarned,
+      ordersDone: r.ordersDone,
+      ordersSabotaged: r.ordersSabotaged,
+      log: r.log,
+      ending: ending ?? undefined,
+    });
+    if (ending) uiS.setEnding(ending);
+    setTimeout(() => uiS.go(ending ? 'finale' : 'complete'), r.win ? 500 : 900);
+  };
+
+  const { engine, objects, hud } = useGameLoop(level, init, {
+    onFx,
+    onEvent,
+    onEnd,
+    onConsume: (t) => useGameStore.getState().consumeTool(t),
+    onTrust: (b, w) => useGameStore.getState().addTrust(b, w),
+  });
+  const engineRef = useRef(engine);
+  engineRef.current = engine;
+
+  // базовые инструменты по сюжету (Лассо со 2-го уровня) — сохраняем в сейв
+  useEffect(() => {
+    useGameStore.getState().unlockTools(storyTools(useGameStore.getState().story, level.id));
+  }, [level.id]);
+
+  // флаги, изменённые выбором посреди смены, — в движок
+  useEffect(() => {
+    if (engine) engine.story = story;
+  }, [engine, story]);
+
+  // снимаем выделение, если объект уехал/рассортирован
+  useEffect(() => {
+    if (selectedId !== null && !objects.some((o) => o.id === selectedId)) setSelectedId(null);
+  }, [objects, selectedId]);
+
+  /* ── ввод ── */
+
+  const select = useCallback(
+    (id: number | null) => {
+      setSelectedId(id);
+      if (engine) engine.selectedId = id;
+    },
+    [engine],
+  );
+
+  const onPressObject = useCallback(
+    (o: EngineObj) => {
+      if (!engine) return;
+      if (o.kind === 'character' && o.eventId) return engine.fireEvent(o.eventId);
+      setSelectedId((cur) => {
+        const next = cur === o.id ? null : o.id;
+        engine.selectedId = next;
+        return next;
+      });
+    },
+    [engine],
+  );
+
+  const onPressBin = useCallback(
+    (i: number) => {
+      if (!engine || selectedId === null) return;
+      engine.sort(selectedId, i);
+      select(null);
+    },
+    [engine, selectedId, select],
+  );
+
+  const onUseTool = useCallback(
+    (id: ToolId) => {
+      if (!engine) return;
+      const res = engine.useTool(id);
+      if (res.selectId) select(res.selectId);
+    },
+    [engine, select],
+  );
+
+  const drag = useDragObject(engine, (id) => {
+    if (id === selectedId) select(null);
+  });
+
+  /* ── модалки ── */
+
+  const openPause = () => {
+    engine?.pause('menu');
+    setModal({ type: 'pause' });
+  };
+  const closePause = () => {
+    engine?.resume('menu');
+    setModal(null);
+  };
+
+  const chooseDilemma = (ev: LevelEvent, optId: string, label: string): string | null => {
+    if (ev.id === 'final') {
+      const st = useGameStore.getState().story;
+      endingRef.current = resolveEnding(optId, st);
+      finalAnswer.current = label;
+      setTimeout(() => engine?.finishFinal(`Ответ Куратору: «${label}»`), 400);
+      return null;
     }
-    publish()
-  }
-  const selectedItem = view.items.find((item) => item.id === selected)
-  const npc =
-    level === 3 ? 'whisper' : level === 9 ? 'originalRobot' : undefined
-  const npcVisible = npc && view.count >= 4 && !view.done.includes(npc)
-  function approachNpc() {
-    if (!npc || paused || state.pending || ended.current) return
-    state.pending = npc
-    writeCheckpoint()
-    publish()
-  }
+    const out = resolveDilemma(ev.id, optId);
+    const store = useGameStore.getState();
+    store.setStory(out.patch);
+    if (out.trust) store.addTrust(out.trust.boss ?? 0, out.trust.whisper ?? 0);
+    if (out.unlock) {
+      const fresh = store.unlockTools(out.unlock);
+      fresh.forEach((t) =>
+        useUiStore.getState().pushToast({ kind: 'tool', title: TOOLS[t].name, text: TOOLS[t].desc, icon: TOOLS[t].icon }),
+      );
+    }
+    outcomeLog.current = out.log;
+    checkAchievements();
+    return out.response;
+  };
+
+  const finishEvent = (ev: LevelEvent) => {
+    engine?.resolveEvent(ev.id, outcomeLog.current);
+    outcomeLog.current = '';
+    setModal(null);
+  };
+
+  // свернули браузер — открываем паузу, чтобы смена не продолжилась внезапно
+  const modalRef = useRef(modal);
+  modalRef.current = modal;
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden && engine && !modalRef.current) {
+        engine.pause('menu');
+        setModal({ type: 'pause' });
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [engine]);
+
+  /* ── производные ── */
+
+  const tools: ToolSlot[] = useMemo(() => {
+    const base = storyTools(story, level.id).map((id) => ({ id }));
+    const shop = SHOP_TOOLS.filter((id) => purchased[id] !== undefined).map((id) => ({
+      id,
+      count: TOOLS[id].consumable ? purchased[id] ?? 0 : undefined,
+    }));
+    return [...base, ...shop];
+  }, [story, level.id, purchased]);
+
+  const orderUi = useBossOrders(hud?.order ?? null);
+  const layout = LAYOUT[level.lanes.length] ?? LAYOUT[1];
+  const laneObjects = useMemo(
+    () => level.lanes.map((_, i) => objects.filter((o) => o.lane === i)),
+    [objects, level.lanes],
+  );
+  const activeObj = drag.activeId !== null ? objects.find((o) => o.id === drag.activeId) : undefined;
+  const hintBin = hud?.hintCat ? level.bins.indexOf(hud.hintCat) : -1;
+  const paused = !!modal || !engine;
+  const corner =
+    level.id === 3 ? 'whisper' : level.id === 6 ? 'curator' : level.id === 9 && story.whisperSaved ? 'whisper' : null;
+
+  const vars = {
+    '--lane-h': `${layout.laneH}px`,
+    '--lane-min': `${layout.laneMin}px`,
+    '--obj-w': `${layout.objW}px`,
+    '--obj-h': `${layout.objH}px`,
+  } as CSSProperties;
+
+  if (!engine || !hud) return <div className={s.root} />;
+
   return (
-    <section
-      className="shift"
-      onKeyDown={(event) => {
-        if (!scene && ['1', '2', '3'].includes(event.key))
-          sort(selected, Number(event.key) - 1)
-        if (event.key === 'Escape' && !scene && !failed) setPaused((v) => !v)
-      }}
-    >
-      <header className="shift-heading">
-        <button className="small" onClick={() => setPaused(true)}>
-          Ⅱ <span>Пауза</span>
-        </button>
-        <div>
-          <span className="eyebrow">
-            Смена {String(level).padStart(2, '0')} / 10
-          </span>
-          <h1>{title}</h1>
-        </div>
-        <span className="credits">◈ {save.coins}</span>
-      </header>
-      <div className="hud">
-        <div>
-          <span>ПРОГРЕСС</span>
-          <strong>
-            {view.count}
-            <small> / {goal}</small>
-          </strong>
-        </div>
-        <div>
-          <span>ВРЕМЯ</span>
-          <strong>{Math.max(0, Math.ceil(view.time))}с</strong>
-        </div>
-        <div>
-          <span>ЖИЗНИ</span>
-          <strong className="hearts">
-            {'♥'.repeat(Math.max(0, view.life))}
-            <em>{'♡'.repeat(Math.min(3, 3 - Math.max(0, view.life)))}</em>
-          </strong>
-        </div>
-        <div>
-          <span>ОЧКИ {save.story.hasChip === 'yes' ? '· ▣' : ''}</span>
-          <strong>{view.score}</strong>
-        </div>
-      </div>
-      <div className="meters">
-        <label>
-          Перегрев <progress max={100} value={view.heat} />
-        </label>
-        {level === 9 && (
-          <label>
-            Свет <progress max={100} value={view.light} />
-          </label>
-        )}
-        <output>{view.flash || 'Смена началась'}</output>
-      </div>
-      {view.order && (
-        <aside className="order">
-          <div>
-            🎧 {orders[view.order.type][0]}{' '}
-            <small>{Math.ceil(view.order.until - view.elapsed)}с</small>
-          </div>
-          <button
-            className="small"
-            onClick={() => {
-              resolveOrder(true)
-              publish()
-            }}
-          >
-            Саботировать
-          </button>
-        </aside>
-      )}
+    <div className={s.root} style={vars}>
+      <HUD level={level} hud={hud} coins={coins} onPause={openPause} />
+
       <DndContext
-        sensors={sensors}
-        onDragStart={({ active }) => setDragging(Number(active.id))}
-        onDragCancel={() => setDragging(undefined)}
-        onDragEnd={({ active, over }) => {
-          setDragging(undefined)
-          if (over) sort(Number(active.id), Number(String(over.id).slice(-1)))
-        }}
+        sensors={drag.sensors}
+        collisionDetection={drag.collisionDetection}
+        onDragStart={drag.onDragStart}
+        onDragEnd={drag.onDragEnd}
+        onDragCancel={drag.onDragCancel}
+        autoScroll={false}
       >
-        <div
-          className={`belts ${view.order?.type === 4 ? 'blackout' : ''} ${level === 9 ? 'void-belt' : ''}`}
-          style={{ '--light': view.light / 100 } as React.CSSProperties}
-        >
-          {Array.from({ length: lanes }, (_, lane) => (
-            <div className={`belt lane-${lane}`} key={lane}>
-              <div className="belt-tag">
-                ЛИНИЯ {String(lane + 1).padStart(2, '0')}
-              </div>
-              <div className="track" ref={lane === 0 ? trackRef : undefined}>
-                {view.items
-                  .filter((item) => item.lane === lane)
-                  .map((item) => (
-                    <ObjectCard
-                      key={item.id}
-                      item={item}
-                      selected={selected === item.id}
-                      question={level === 10}
-                      glowing={!!active('voice') && item.void}
-                      select={() => setSelected(item.id)}
-                    />
-                  ))}
-              </div>
+        <main className={s.field}>
+          <BossOrderBar order={hud.order} />
+
+          {corner && (
+            <div className={s.corner} aria-hidden>
+              {corner === 'whisper' ? <WhisperSVG size={56} /> : <CuratorSVG size={60} />}
             </div>
-          ))}
-        </div>
-        <div className="sorting-label">
-          {selectedItem ? selectedItem.name : 'Выбери или перетащи объект'}
-          {npcVisible && (
-            <button className="npc-call" onClick={approachNpc}>
-              {level === 3 ? '◉ Глаз под лентой' : '◇ Прототип на полке'}{' '}
-              <span>›</span>
-            </button>
           )}
-        </div>
-        <div className="bins">
-          {[0, 1, 2].map((index) => (
+
+          {hud.combo >= 2 && (
+            <motion.div key={Math.min(hud.combo, 5)} className={s.combo} initial={{ scale: 1.4 }} animate={{ scale: 1 }}>
+              Комбо ×{Math.min(hud.combo, 5)}
+            </motion.div>
+          )}
+
+          <div className={s.lanes}>
+            {level.lanes.map((_, i) => (
+              <ConveyorBelt
+                key={i}
+                lane={i}
+                engine={engine}
+                objects={laneObjects[i]}
+                speed={level.speed * (hud.slow > 0 ? 0.5 : 1) * (hud.order?.type === 'speed' ? 2 : 1)}
+                paused={paused}
+                selectedId={selectedId}
+                activeId={drag.activeId}
+                shakeId={shakeId}
+                doubt={hud.doubt > 0}
+                objW={layout.objW}
+                onPress={onPressObject}
+              />
+            ))}
+          </div>
+
+          {/* Пустота: шкала света */}
+          {level.lightMeter && (
+            <div className={s.darkness} style={{ opacity: 0.97 * (1 - hud.light / 100) }} aria-hidden />
+          )}
+
+          {/* Приказ «Не смотри на ленту!» */}
+          <AnimatePresence>
+            {orderUi.dark && (
+              <motion.div
+                className={s.blackout}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                aria-hidden
+              >
+                <span>Не смотри на ленту…</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Призрак крадёт время */}
+          <AnimatePresence>
+            {hud.ghost > 0 && (
+              <motion.div
+                className={s.ghostFly}
+                initial={{ x: '110%', opacity: 0 }}
+                animate={{ x: '-30%', opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.6, ease: 'easeInOut' }}
+                aria-hidden
+              >
+                <GhostSVG size={90} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Центр. всплывающие подписи */}
+          <div className={s.centerFx} aria-live="polite">
+            <AnimatePresence>
+              {floaters
+                .filter((f) => f.at === -1)
+                .map((f) => (
+                  <motion.span
+                    key={f.id}
+                    className={`${s.floater} ${s[f.tone]}`}
+                    initial={{ y: 10, opacity: 0, scale: 0.9 }}
+                    animate={{ y: -18, opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, y: -30 }}
+                    transition={{ duration: 0.35 }}
+                  >
+                    {f.text}
+                  </motion.span>
+                ))}
+            </AnimatePresence>
+          </div>
+        </main>
+
+        <section className={s.bins}>
+          {level.bins.map((cat, i) => (
             <Bin
-              key={index}
-              index={index}
-              lanes={lanes}
-              free={level === 10}
-              active={!!selectedItem}
-              hint={!!active('eye') && selectedItem?.target === index}
-              sort={() => sort(selected, index)}
+              key={i}
+              index={i}
+              cat={cat}
+              armed={selectedId !== null || drag.activeId !== null}
+              locked={orderUi.lockedBins.has(i)}
+              trap={orderUi.trapBin === i}
+              hint={hintBin === i}
+              flash={flashes[i]}
+              onPress={onPressBin}
             />
           ))}
-        </div>
+          <div className={s.binFx} aria-hidden>
+            <AnimatePresence>
+              {floaters
+                .filter((f) => f.at >= 0)
+                .map((f) => (
+                  <motion.span
+                    key={f.id}
+                    className={`${s.floater} ${s[f.tone]}`}
+                    style={{ left: `${((f.at + 0.5) / 3) * 100}%` }}
+                    initial={{ y: 0, opacity: 0, x: '-50%' }}
+                    animate={{ y: -34, opacity: 1, x: '-50%' }}
+                    exit={{ opacity: 0, y: -50, x: '-50%' }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {f.text}
+                  </motion.span>
+                ))}
+            </AnimatePresence>
+            <AnimatePresence>
+              {allyKey > 0 && (
+                <motion.span
+                  key={allyKey}
+                  className={s.ally}
+                  initial={{ opacity: 1, scale: 0.4 }}
+                  animate={{ opacity: 0, scale: 1.4 }}
+                  transition={{ duration: 0.8 }}
+                >
+                  <AllySVG size={60} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </section>
+
         <DragOverlay dropAnimation={null}>
-          {dragging !== undefined && (
-            <div className="drag-overlay">
-              {view.items.find((item) => item.id === dragging)?.icon}
-            </div>
-          )}
+          {activeObj ? <ObjectCard obj={activeObj} lifted /> : null}
         </DragOverlay>
       </DndContext>
-      <div className="toolrow">
-        {tools
-          .filter(
-            ([id]) =>
-              (id === 'lasso' && level >= 2) ||
-              save.unlockedTools.includes(id) ||
-              save.purchasedTools.includes(id),
-          )
-          .map(([id, icon, name, , cd, description]) => {
-            const left = Math.max(
-              0,
-              Math.ceil((view.cooldowns[id] || 0) - view.elapsed),
-            )
-            return (
-              <button
-                key={id}
-                title={description}
-                disabled={left > 0 || view.order?.type === 2}
-                onClick={() => useTool(id, cd)}
-              >
-                {icon} {name} {left ? `· ${left}с` : ''}
-              </button>
-            )
-          })}
-      </div>
-      {scene && (
-        <div className="veil">
+
+      <ToolBar tools={tools} hud={hud} locked={orderUi.toolsLocked} onUse={onUseTool} />
+
+      {/* вспышка урона по краям экрана */}
+      <AnimatePresence>
+        {vignette > 0 && (
           <motion.div
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label={scene.name}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Portrait kind={scene.art} />
-            <span className="eyebrow">ВСТРЕЧА НА ЛЕНТЕ</span>
-            <h2>{scene.name}</h2>
-            <p>{scene.text}</p>
-            <div className="choices">
-              {scene.choices.map(([label, value]) => (
-                <button key={value} onClick={() => choose(scene.id, value)}>
-                  {label}
-                  <span>›</span>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      )}
-      {(paused || failed) && (
-        <div className="veil">
-          <div
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label={failed ? 'Смена прервана' : 'Пауза'}
-          >
-            <h2>{failed ? 'Смена прервана' : 'Смена на паузе'}</h2>
-            {failed && (
-              <p>
-                {view.heat >= 100
-                  ? 'Лента перегрелась.'
-                  : view.time <= 0
-                    ? 'Время смены вышло.'
-                    : 'Закончились жизни.'}
-              </p>
-            )}
-            <div className="choices">
-              <button
-                onClick={() => {
-                  if (failed) {
-                    Object.assign(state, initialShift())
-                    serial.current = 0
-                    setSelected(undefined)
-                    setDragging(undefined)
-                    ended.current = false
-                    setFailed(false)
-                    writeCheckpoint()
-                    useGameStore.getState().update((s) => ({
-                      stats: {
-                        ...s.stats,
-                        totalGames: s.stats.totalGames + 1,
-                      },
-                    }))
-                    publish()
-                  }
-                  setPaused(false)
-                }}
-              >
-                {failed ? 'Повторить смену' : 'Продолжить'}
-              </button>
-              <button
-                onClick={() => {
-                  if (failed)
-                    useGameStore
-                      .getState()
-                      .update(() => ({ checkpoint: undefined }))
-                  else writeCheckpoint()
-                  onExit()
-                }}
-              >
-                В главное меню
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  )
+            key={vignette}
+            className={s.vignette}
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            aria-hidden
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {modal?.type === 'dilemma' && (
+          <DilemmaModal
+            key={modal.ev.id}
+            dilemma={modal.dilemma}
+            onChoose={(opt) =>
+              chooseDilemma(modal.ev, opt, modal.dilemma.options.find((o) => o.id === opt)?.label ?? '')
+            }
+            onDone={() => finishEvent(modal.ev)}
+          />
+        )}
+        {modal?.type === 'beat' && (
+          <CharacterModal key={modal.ev.id} beat={modal.beat} onDone={() => finishEvent(modal.ev)} />
+        )}
+        {modal?.type === 'pause' && (
+          <Modal key="pause" onClose={closePause} label="Пауза">
+            <h2 className={ui.title} style={{ textAlign: 'center' }}>Пауза</h2>
+            <p className={ui.muted} style={{ textAlign: 'center' }}>
+              Ур. {level.id} · {level.title} · {Math.min(hud.sorted, level.goal)}/{level.goal}
+            </p>
+            <button className={`${ui.btn} ${ui.primary} ${ui.block}`} onClick={closePause}>
+              <Icon name="play" size={18} /> Продолжить
+            </button>
+            <button className={`${ui.btn} ${ui.block}`} onClick={() => go('game')}>
+              <Icon name="reset" size={18} /> Начать смену заново
+            </button>
+            <button className={`${ui.btn} ${ui.ghost} ${ui.block}`} onClick={() => go('menu')}>
+              <Icon name="back" size={18} /> В главное меню
+            </button>
+          </Modal>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

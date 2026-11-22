@@ -1,0 +1,50 @@
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  padding: calc(var(--safe-top) + 56px) calc(var(--safe-right) + var(--gap-md)) calc(var(--safe-bottom) + var(--gap-md))
+    calc(var(--safe-left) + var(--gap-md));
+  background: rgba(5, 7, 14, 0.94);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.default {
+  background: radial-gradient(90% 50% at 50% 20%, rgba(108, 140, 255, 0.16), transparent 70%), rgba(5, 7, 14, 0.96);
+}
+.curator {
+  background: radial-gradient(90% 50% at 50% 20%, rgba(139, 26, 42, 0.35), transparent 70%), rgba(6, 2, 4, 0.97);
+}
+.void {
+  background: radial-gradient(90% 50% at 50% 20%, rgba(200, 107, 255, 0.18), transparent 70%), rgba(0, 0, 0, 0.97);
+}
+.gold {
+  background: radial-gradient(90% 50% at 50% 20%, rgba(255, 209, 102, 0.16), transparent 70%), rgba(5, 7, 14, 0.96);
+}
+
+.content {
+  width: min(100%, 520px);
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-md);
+}
+
+.close {
+  position: fixed;
+  top: calc(var(--safe-top) + 8px);
+  right: max(calc(var(--safe-right) + 8px), calc((100vw - 600px) / 2 + 8px));
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(19, 26, 46, 0.85);
+  border: 1px solid var(--line);
+  color: var(--text-primary);
+  z-index: 2;
+}

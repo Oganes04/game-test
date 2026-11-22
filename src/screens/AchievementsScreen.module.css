@@ -1,0 +1,77 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ach {
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: var(--radius-md);
+  background: rgba(11, 16, 32, 0.85);
+  border: 1px solid var(--line);
+  opacity: 0.55;
+}
+.ach b {
+  font-size: var(--fs-sm);
+}
+.ach small {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.on {
+  opacity: 1;
+  border-color: rgba(255, 209, 102, 0.45);
+  background: linear-gradient(180deg, rgba(60, 46, 10, 0.4), rgba(11, 16, 32, 0.9));
+}
+
+.icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+.on .icon {
+  color: var(--accent-gold);
+  background: rgba(255, 209, 102, 0.12);
+}
+
+.secret,
+.stats {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.secret p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.secret .done {
+  color: var(--accent-ghost);
+}
+
+.stats p {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.stats b {
+  color: var(--text-primary);
+}

@@ -1,0 +1,120 @@
+.bar {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 2px;
+  min-height: calc(var(--tool-btn) + 4px);
+}
+
+.scroll {
+  justify-content: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.empty {
+  flex: 0 0 auto;
+  min-height: calc(var(--tool-btn) + 4px);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.tool {
+  position: relative;
+  flex: 0 0 var(--tool-btn);
+  width: var(--tool-btn);
+  height: var(--tool-btn);
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--tool-color) 28%, #131a2e), #0b1020);
+  border: 1px solid color-mix(in srgb, var(--tool-color) 55%, transparent);
+  color: var(--tool-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: transform 0.1s ease;
+  touch-action: manipulation;
+}
+
+.tool:active {
+  transform: scale(0.92);
+}
+
+/* радиальный индикатор кулдауна */
+.cdRing {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(rgba(7, 10, 20, 0.78) calc(var(--cd) * 360deg), transparent 0);
+  pointer-events: none;
+}
+
+.cooling {
+  color: var(--text-muted);
+}
+
+.cdNum {
+  position: absolute;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 3px #000;
+}
+
+.active {
+  box-shadow: 0 0 0 2px var(--tool-color), 0 0 18px var(--tool-color);
+  animation: activePulse 0.9s ease-in-out infinite;
+}
+
+.locked {
+  filter: saturate(0.4);
+}
+
+.empty2 {
+  opacity: 0.35;
+}
+
+.badge {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--tool-color);
+  color: #0b1020;
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+.lock {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent-gold);
+  color: #241a00;
+}
+
+@keyframes activePulse {
+  50% {
+    transform: scale(1.06);
+  }
+}

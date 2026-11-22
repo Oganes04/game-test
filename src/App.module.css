@@ -1,9 +1,0 @@
-.shell {
-  width: min(100% - 42px, 940px);
-  margin: auto;
-}
-@media (max-width: 600px) {
-  .shell {
-    width: calc(100% - 22px);
-  }
-}
